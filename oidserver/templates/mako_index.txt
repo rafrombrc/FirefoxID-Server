@@ -1,0 +1,6 @@
+check_setup.mako    -- display login confirmation form
+    POST http://{host}
+login.mako          -- display the login form.
+user.mako           -- general user page
+    (e.g. http://{host}/{user}
+yadis.mako          -- yadis discovery page

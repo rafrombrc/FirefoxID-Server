@@ -1,0 +1,58 @@
+<html>
+    <head>
+        <link href="style.css" type="text/css" rel="stylesheet" />
+    </head>
+    <body>
+        <h1>SQLAlchemy Cheat Sheet</h1>
+
+        <h2>Creating Tables</h2>
+        <h3>Column</h3>
+        <h4>Args</h4>
+        <dl>
+        <dt>'string'</dt><dd>column name</dd>
+        <dt><i>Type</i></dt><dd>One of the types listed in <a href="#ColTypes"><b>Types</b></a>.</dd>
+        <dt>ForeignKey()</dt><dd></dd>
+        <dt>SchemaItem()</dt><dd></dd>
+        <dt>Constraint()</dt><dd></dd>
+        <dt>ColumnDefault()</dt><dd></dd>
+        <dt>Sequence()</dt><dd></dd>
+        <dt>autoincrement=<i>True|False</i></dt><dd>Only available for numeric column types</dd>
+        <dt>default=<i>'value' | pcall</i></dt><dd></dd>
+        <dt>doc=<i>'doc string'</i></dt><dd></dd>
+        <dt>key=<i>'name'</i></dt><dd>(optional) python alias for column. Column name will only be used for sql.</dd>
+        <dt>index=<i>True|False</i></dt><dd>Create an index on this column. Multi column indexes require an Index() call.</dd>
+        <dt>info=<i>{}</i></dt><dd>dictionary to store app specific data.</dd>
+        <dt>primary_key=<i>True|False</i></dt><dd>set as primary key (can be applied to multiple columns to create multi-key</dd>
+        <dt>quote=<i>True|False</i></dt><dd>Force column name quoting</dd>
+        <dt>unique=<i>True|False</i><dt><dd>Column content should be unique</dd>
+        <dt>onupdate=<i>pcall</i><dd>invoke on update</dd>
+        <dt>server_default=<i>val</i></dt><dd></dd>
+        <dt>server_onupdate=<i>pcall</i></dt><dd></dd>
+        </dl>
+
+        <a name="ColTypes"><h4>Types:</h3></a>
+        <p>defined in sqlalchemy.types</p>
+<ol>
+<li>String</li>
+<li>Integer</li>
+<li>SmallInteger</li>
+<li>BigInteger</li>
+<li>Numeric</li>
+<li>Float</li>
+<li>DateTime</li>
+<li>Date</li>
+<li>Time</li>
+<li>LargeBinary</li>
+<li>Binary</li>
+<li>Boolean</li>
+<li>Unicode</li>
+<li>MutableType</li>
+<li>Concatenable</li>
+<li>UnicodeText</li>
+<li>PickleType</li>
+<li>Interval</li>
+<li>type_map</li>
+<li>Enum</li>
+<ol>
+    </body>
+</html>
