@@ -5,11 +5,13 @@ from oidserver.wsgiapp import make_app
 from oidserver.tests import test_config
 from oidserver.tests import FakeRequest
 
+MONGO = False
 try:
-    from oidserver.storage.mongo import MongoStorage # NOQA
-    MONGO = True
+    if test_config.get('oidstorage.backend','memory') == 'mongo':
+        from oidserver.storage.mongo import MongoStorage # NOQA
+        MONGO = True
 except ImportError:
-    MONGO = False
+    pass
 
 if MONGO:
 

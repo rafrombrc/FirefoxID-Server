@@ -9,9 +9,10 @@ F75A2E27898B057F9891C2E27A639C3F29B60814581CD3B2CA3986D268370557
 PRIME = long("".join(PRIME.split()), 16)
 
 ## default values:
-test_config = {'auth.user': 'tarek',
-               'auth.pass': 'tarek',
-               'auth.credentials': 'tarek:tarek',
+test_config = {'auth.user': 'good@example.com',
+               'auth.pass': 'good',
+               'userinfo.uid': 'test_api_1',
+               'auth.credentials': 'jrandomperson:password',
                'oidstorage.backend': 'memory',
                'uidcookiestorage.backend': 'memory',
                'config.target': 'localhost'}
@@ -21,6 +22,8 @@ test_config = {'auth.user': 'tarek',
 #       auth.issuer             Auth Identifier (untrusted)
 #       auth.server_secret      Crypto Secret ('')
 #       db.host                 Database Host (127.0.0.1)
+#       oidstorage.backend      (memory | mongo | redis)
+#                               currently redis is not yet finalized
 
 class FakeRequest(object):
     """
