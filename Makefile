@@ -11,7 +11,6 @@ PYLINT = bin/pylint
 PKGS = oidserver
 BENCH = bin/fl-run-bench
 REPORT = bin/fl-build-report
-TAR = tar
 
 .PHONY: all build test hudson lint
 
@@ -23,31 +22,27 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) Funkload
+	$(EZ) Funkload==1.14        #Currently locked due to a dependency issue in Funkload.
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
 	$(EZ) Beaker
 	$(EZ) Mako
-# required for install
 	$(EZ) python_ldap
 	$(EZ) gunicorn
-	$(EZ) mysql_python
-	cat 
-
-test:
-	$(NOSE) $(TESTS)
 
 clean:
 	find . -name "*.pyc" -delete
 	rm -rf html
 	rm -rf loadtests/stress/html
 	rm -f  loadtests/stress/stress-bench.xml*
-    
 
 package:
 	$(clean)
-	tar -zcvf ../oidserver.tar.gz README.txt Makefile conf etc loadtests nosetests.xml oidserver pylintrc *.py static
+	tar -zcvf ../oidserver.tar.gz README.txt Makefile nosetests.xml *.py conf etc loadtests oidserver static
+
+test:
+	$(NOSE) $(TESTS)
 
 hudson:
 	rm -f coverage.xml

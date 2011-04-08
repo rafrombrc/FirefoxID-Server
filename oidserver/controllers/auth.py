@@ -56,7 +56,7 @@ class AuthController(BaseController):
             try:
                 association = self.app.storage.get_association(assoc_handle)
                 if association:
-                    logged_in = association.get('state', True)
+                    logged_in = association.get('state',True)
             except OIDStorageException:
                 pass
         if logged_in:
@@ -234,7 +234,7 @@ class AuthController(BaseController):
     def login(self, request, **kw):
         response = {}
         error = {}
-        clear_login = False
+        clear_login = False;
         (content_type, template) = self.get_template_from_request(request)
         # User is not logged in or the association is not present.
         if (len(request.POST.get('email', '')) and
@@ -242,7 +242,7 @@ class AuthController(BaseController):
             email = request.POST['email']
             password = request.POST['password']
             # Remove the cookie (if present)
-            clear_login = True
+            clear_login = True;
             try:
                 username = extract_username(email)
             except UnicodeError:
@@ -258,7 +258,7 @@ class AuthController(BaseController):
                 # User is valid, record the association
                 storage = self.app.storage
                 request.environ['beaker.session']['logged_in'] = uid
-                clear_login = False
+                clear_login = False;
                 if not storage.gen_site_id(request):
                     # HTTPTemporaryRedirect = 307
                     # HTTPFound  = 302 // does not pass args.
@@ -272,8 +272,8 @@ class AuthController(BaseController):
                     user = storage.set_user_info(uid, email,
                                                  emails = [email, ]
                                                  )
-                if association is None or not association.get('state', True):
-                    if (self.is_type(request, 'html')):
+                if association is None or not association.get('state',True):
+                    if (self.is_type(request,'html')):
                         return self.authorize(request)
                     else:
                         error = self.error_codes.get('LOGIN_ERROR')
@@ -283,7 +283,10 @@ class AuthController(BaseController):
                         'id': association.get('site_id'),
                         'secret': association.get('secret')
                         }
-                    error = {}
+                    body = template.render(response = response,
+                                            request = request,
+                                            config = self.app.config)
+                    return Response(str(body), content_type = content_type)
             else:
                 # failed
                 logger.debug("Login failed for %s " % email)
@@ -292,7 +295,7 @@ class AuthController(BaseController):
             uid = self.get_uid(request)
             if uid is not None:
                 return self.authorize(request)
-        # Display the login page.
+        # Display the login page for HTML only
         if self.is_type(request, 'html'):
             template = get_template('login')
         body = template.render(error = error,

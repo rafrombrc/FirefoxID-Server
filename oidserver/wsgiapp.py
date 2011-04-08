@@ -44,10 +44,9 @@ from oidserver.storage import get_storage
 from services.baseapp import set_app, SyncServerApp
 
 
-
 urls = [
-        # temp. patch for front end files.
-        ('GET', '/blank.{ext:[\w]+}', 'oid', 'blank'),
+        #('GET', '/__debug__', 'svc', 'debug'),
+        #('GET', '/__heartbeat__', 'svc', 'heartbeat'),
         ## private
         # Is the user Logged In?
         ('POST', '/1/logged_in', 'auth', 'logged_in'),
@@ -71,7 +70,8 @@ urls = [
         ('GET', '/{user:[@\w\.\-\+]+}', 'oid', 'get_user_info'),
         ]
 
-controllers = {'oid': OIDController, 'auth': AuthController}
+controllers = {'oid': OIDController,
+               'auth': AuthController}
 
 
 class OIDApp(SyncServerApp):
@@ -88,6 +88,7 @@ class OIDApp(SyncServerApp):
         """
         #self.cookies = get_storage(config,'cookies')
         super(OIDApp, self).__init__(urls, controllers, config, auth_class)
+        self.debug_page = '__debug__'
 
 
 def _wrap(app):

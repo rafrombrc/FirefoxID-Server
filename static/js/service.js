@@ -35,9 +35,9 @@
  * ***** END LICENSE BLOCK ***** */
 
 /*
- * Server-side Javascript module that implements the Mozilla Identity API:
+ * Server-side Javascript module that implements the Firefox Identity API:
  *
- *   https://wiki.mozilla.org/MozillaID
+ *   https://wiki.mozilla.org/FirefoxID
  *
  */
 

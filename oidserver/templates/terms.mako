@@ -40,35 +40,23 @@
  <meta name="error" content="${error}" />
 %endif
  <link rel="stylesheet" type="text/css" href="/s/style.css" />
- <meta name="page" content="associate" />
+ <meta name="page" content="terms" />
  </head>
  <body>
-  <h1>Sign in with Your Mozilla ID</h1>
-    %if len(error) > 0:
-     <div class="error">${error}</div>
-    %endif
-    <p>How would you like to identify yourself to <b>${audience}</b></p>
-    <form action='/1/authorize' method='POST'>
-    % for email in emails:
-     <p><input class="radio" id="email_${icnt}" type="radio" name="temail" value="${email}"
-     % if email == default:
-      checked
-     % endif
-     />
-     <label for="email_${icnt}">${email}</label></p>
-     <% icnt = icnt + 1 %>
-    % endfor
+  <h1>Please Read</h1>
+  <div class="text">
+  <h2>Terms of Use</h2>
+  <p>{Terms of use go here}<p>
+  </div>
+    <form action='/1/login' method='POST'>
      <div class="footer">
-     <div class="commands">
-     <a href="${add_email_url}">Add a new email address</a>
-     <a href="${manage_acct_url}">Manage my Mozilla ID</a>
-     </div>
      <div class="buttons">
      <button class="go_back" disabled>Go Back</button>
-     <button type="cancel" class="cancel" onclick="window.close()">Cancel</button>
-     <button type="submit" class="submit">Sign In</button>
+     <button type="cancel" class="cancel">Cancel</button>
+     <button type="submit" name="terms" value="Y" class="submit">I Agree</button>
      <div>
      <input type="hidden" name="audience" value="${audience}" />
     </form>
+    <script src="user.js"></script>
  </body>
 </html>

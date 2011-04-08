@@ -2,6 +2,7 @@ import abc
 from services.pluginreg import PluginRegistry
 
 
+
 class OIDStorageException(Exception):
     def __init__(self, value):
         self.value = value
@@ -35,6 +36,7 @@ class OIDStorage(PluginRegistry):
         Return:
            A sequence of (site, handle)
         """
+
 
 
 def get_storage(config, type='oidstorage'):

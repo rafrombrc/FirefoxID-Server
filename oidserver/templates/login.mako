@@ -29,11 +29,11 @@
  <link rel="stylesheet" type="text/css" href="/s/style.css" />
  </head>
  <body>
-  <h1>Sign in with Your Mozilla ID</h1>
+  <h1>Sign in with Your Firefox ID</h1>
     %if len(error) > 0:
      <div class="error">${error}</div>
     %endif
-    <p>Use your Mozilla ID to sign in to
+    <p>Use your Firefox ID to sign in to
     %if len (audience) == 0:
     <div class="error">Invalid Site</div>
     %else:
@@ -52,7 +52,7 @@
      ${use_default_checked} /><label for="use_default">Use my default
      identity</label> <a href="${id_help_url}">Identity?</a>
      <div class="footer">
-     <div class="register"><b>Don't have a Mozilla ID?</b>
+     <div class="register"><b>Don't have a Firefox ID?</b>
      <a href="${id_create_url}">Create one</a> now or
      <a href="${id_learn_url}">learn why</a>
      <div class="buttons">

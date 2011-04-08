@@ -1,4 +1,4 @@
-body {padding:0;margin:0 auto;text-align:center;font:80% Arial;width:475px;min-height:438px;}
+body {padding:0;margin:0 auto;text-align:center;font:80% Arial;width:475px;min-height:380px;}
 h1 {margin:.5em auto;width:100%}
 .error {display:inline-block; color:red;}
 form {width:475px;text-align:left;margin:0 auto;}
@@ -6,8 +6,13 @@ label {display:inline-block;width:80px;}
 .useDefault { display:none;}
 input {border:1px solid #888; padding:2px;width:255px;}
 input.radio {width:auto;}
-.buttons {text-align:right;border-top:2px solid #e3ebf3;background:#f4f7fb;min-height:60px;display:block;width:100%;}
-.register {padding:4em 0 .5em 0;}
+.buttons {margin:0; padding:0;text-align:right;border-top:2px solid #e3ebf3;background:#f4f7fb;min-height:60px;display:block;width:100%;}
+.register {padding:4em 2em .5em 0;}
+.footer {position:fixed;bottom:0;width:475px;margin:0;padding:0;}
+.commands {padding: 1em 0;}
 button {background-image -moz-linear-gradient(center bottom,#E9E9E9, #FbFbFb);width:100px;padding:2px;margin:20px 2px;border-radius:5px;border:0;border:1px solid #888;}
 button.submit {background-image:-moz-linear-gradient(center bottom,#007dd6,#0093fa);color:#FFF;border:0;font-weight:bold;}
 button.go_back {position:relative;left:-120px; }
+
+table#sites th {background-color:#EEE;}
+table#sites td {border:1px solid #CCC;}

@@ -18,3 +18,6 @@ class TestUtil(unittest.TestCase):
                     'bo%EF%bb@badcharacter.test')       # bad utf-8 char
         self.assertRaises(UnicodeError, extract_username,
                     'bo%ef%bb%bc@badbidiuser.test')     # invalid BIDI char
+
+
+ 

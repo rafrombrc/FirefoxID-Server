@@ -43,7 +43,7 @@
  <meta name="page" content="associate" />
  </head>
  <body>
-  <h1>Sign in with Your Mozilla ID</h1>
+  <h1>Sign in with Your Firefox ID</h1>
     %if len(error) > 0:
      <div class="error">${error}</div>
     %endif
@@ -61,7 +61,7 @@
      <div class="footer">
      <div class="commands">
      <a href="${add_email_url}">Add a new email address</a>
-     <a href="${manage_acct_url}">Manage my Mozilla ID</a>
+     <a href="${manage_acct_url}">Manage my Firefox ID</a>
      </div>
      <div class="buttons">
      <button class="go_back" disabled>Go Back</button>

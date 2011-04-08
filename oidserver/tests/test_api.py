@@ -215,3 +215,12 @@ class TestApi(unittest.TestCase):
         self.failIf('<meta name="page" content="associate" />' not in
                     res.body)
         self.failIf(self.user_info.get('pemail') not in res.body)
+
+    def test_heartbeat(self):
+        self.app.get('/__heartbeat__',
+                     status = 200)
+
+    def test_debug(self):
+        resp = self.app.get('/__debug__',
+                     status = 200)
+        self.failIf('Debug information' not in resp.body)

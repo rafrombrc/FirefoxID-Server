@@ -45,11 +45,11 @@ main = paste.script.appinstall:Installer
 
 requires = ['WebOb', 'Paste', 'PasteScript', 'Services', 'Mako', 'Beaker']
 
-setup(name='OpenIdServer', author='Tarek Ziade',
-      url='https://hg.mozilla.org/tarek/server-openid',
-      description='OpenId server',
+setup(name='OpenIdServer', author='Mozilla Services Group',
+      url='http://hg.mozilla.org/services/server-identity/',
+      description='Mozilla Identitity Server',
       long_description=open('README.txt').read(),
-      author_email='tarek@mozilla.com',
+      author_email='dev_services@mozilla.com',
       version=0.1, packages=find_packages(),
       entry_points=entry_points, install_requires=requires,
       license='MPL')
