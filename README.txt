@@ -23,19 +23,19 @@ The following packages are required. For simplicity, I have limited these to
 the corresponding debian package names, however it should be reasonably 
 simple to determine the corresponding package names for your system:
 
-	python-2.6
-	python-virtualenv
+    python-2.6
+    python-virtualenv
 
 We run the package via nginx, although there's no requirement for deployment.
     nginx
 
 some additional optional packages
-	python-2.6-dev
-	python-2.6-profiler
-	redis-server  (v.2.0.4 +)
-	python-redis
+    python-2.6-dev
+    python-2.6-profiler
+    redis-server  (v.2.0.4 +)
+    python-redis
     python-ldap
-	python-openid
+    python-openid
     gnuplot (for bench reports)
     python-gnuplot
     libsasl2-dev
@@ -49,8 +49,8 @@ via the virtualenv easyinstall:
 
 :Installation:
     #. pull the latest repository 
-	#. modify openid.conf
-	#. $ make build
+    #. modify openid.conf
+    #. $ make build
     #. $ mkdir -p /etc/oidserver; cp etc/*.{ini,conf} /etc/oidserver
     #. $ bin/gunicorn -w 1 oidserver.run
         (Note: multiple workers are useful, but not recommended for debugging.
