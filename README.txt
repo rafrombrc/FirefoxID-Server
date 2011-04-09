@@ -58,10 +58,59 @@ via the virtualenv easyinstall:
         include -t 300 which will time out worker threads after 300 seconds,
         rather than the default 30 seconds.)
 
-This should bring up a server.
-
 If you are using nginx as your server platform:
     #. $ cp conf/nginx/conf.d/*.conf /etc/nginx/conf.d
     Please note that due to nginx conf processing considerations, astatic.conf needs
     to be processed before other "s*" based rules are resolved.
+
+This should bring up a server.
+
+:: Running a "stand-alone, in-memory server" ::
+A stand-alone, in-memory server is a useful tool to play with the protocol 
+without requiring the overhead of mongo, LDAP or other tools. The major 
+issue with such a server is that restarting the server will flush all entries.
+
+You will need to install nginx in order to use the stand-alone, in-memory 
+server. 
+
+::: Steps :::
+#. Pull the latest repository
+
+#. mkdir -p /etc/oidserver; cp etc/*.* /etc/oidserver
+
+#. cp conf/nginx/conf.d/* /etc/nginx/conf.d/
+
+#. customize for your platform.
+It is STRONGLY recommended that you run nginx on port 80 and that your
+/etc/nginx/nginx.conf contains the following server declaration in 
+the http section:
+
+    server {
+        listen 80 default;
+        include /etc/nginx/conf.d/*.conf;
+    }
+
+In addition, you should add the following declaration to 
+/etc/nginx/conf.d/astatic.conf:
+
+location ^~ /sample/ {
+    allow all;
+    root /var/www/;
+}
+
+#. mkdir -p /var/www/sample/; cp sample/* /var/www/sample
+
+#. /etc/init.d/nginx restart
+
+#. bin/gunicorn -w 1 oidserver.run -t 300 
+I recommend using a program like screen or executing this in a separate
+terminal. 
+
+#. Go to http://localhost/sample/
+
+You should now be able to test the protocol. Email addresses may be 
+anything and only accounts with "bad" in the password will be rejected.
+(this is the system used by the unit tests).
+
+
 
