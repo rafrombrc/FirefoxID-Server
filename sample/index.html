@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login page</title>
+<style>
+    #login {display:none;}
+</style>
+  </head>
+  <body>
+    <h1 id="welcome">Testing verified email.</h1>
+    <p id="output">Output: </p>
+    <script type="text/javascript" src="http://localhost/s/wrapper.js"></script>
+    <button id="login" >Login with your Firefox ID</button>
+    <script type="text/javascript">
+      console.log("Loaded wrapper page.");
+
+      function callback(m) {
+        var txt = document.createTextNode(JSON.stringify(m));
+        document.getElementById('welcome').innerHTML = "Welcome " + m.result.email;
+        var out = document.getElementById("output");
+        out.appendChild(txt);
+      }
+      function login(e) {
+        document.getElementById('output').innerHtml='';
+        navigator.id.getVerifiedEmail(callback);
+      }
+     var lg = document.getElementById('login');
+     lg.addEventListener("click",login,false);
+     lg.style.display='inline';
+     //navigator.id.getVerifiedEmail(callback);
+    </script>
+  </body>
+</html>
+
