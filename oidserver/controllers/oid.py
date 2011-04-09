@@ -22,7 +22,6 @@ class OIDController(BaseController):
             template = get_template('yadis')
             ct = 'application/xrds+xml'
         else:
-            import pdb; pdb.set_trace()
             logged = self.logged(request)
             if logged is not None:
                 # Convert the user name to a standardized token
