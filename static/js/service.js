@@ -234,7 +234,7 @@ var IdentityService = function() {
     getDefaultEmail: function getDefaultEmail(audience) {
       var op  = "get_default_email";
       var req = this.doRequest(op, {"audience": audience});
-      var rep = {result: req.success && req.responseJSON.email};
+      var rep = {result: req.success && req.responseJSON};
       return buildResponse(req, op, rep);
     },
 
