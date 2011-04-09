@@ -87,7 +87,7 @@
       var popup;                     // Window handle of our popup.
       var popupRequestMessage;       // Used to send replies from the popup.
 
-      var identityOrigin   = "http://web4.dev.svc.mtv1.mozilla.com";
+      var identityOrigin   = "http://localhost";
       var iframe           = document.createElement("iframe");
       iframe.style.display = "none";
       iframe.src           = identityOrigin + "/s/html/service_iframe.html";

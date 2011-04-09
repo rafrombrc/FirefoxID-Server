@@ -7,7 +7,7 @@ import time
 
 class MemoryStorage(OIDStorage, OIDStorageBase):
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.sites = defaultdict(list)
         self.redirects = {}
         self._assoc_db = {}
@@ -90,6 +90,14 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         if handle not in self._assoc_db:
             return None
         return self._assoc_db[handle]
+
+    def get_associations_for_uid(self, uid):
+        result = []
+        for handle, hash in self._assoc_db.iteritems():
+            if hash.get('uid','') == uid:
+                result.append(hash)
+        return result
+
 
     def del_association(self, handle):
         if handle not in self._assoc_db:

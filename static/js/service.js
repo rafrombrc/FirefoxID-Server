@@ -80,8 +80,8 @@ var IdentityService = function() {
    * Main service object.
    */
   return {
-    identityOrigin:  "http://web4.dev.svc.mtv1.mozilla.com",
-    identityBaseURL: "http://web4.dev.svc.mtv1.mozilla.com/1/",
+    identityOrigin:  "http://localhost",
+    identityBaseURL: "http://localhost/1/",
 
     /*
      * Mini postMessage communication framework. Each mailbox represents a
