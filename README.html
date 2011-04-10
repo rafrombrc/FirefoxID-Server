@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>FirefoxID alpha User Manual</title>
+<link rel="stylesheet" type="text/css" href="style.css" />
+</head>
+<body>
+<h1>FirefoxID server</h1>
+<div class="attention">Note: This is an early alpha version designed to showcase the protocol. Some backend functions are emulated for stand alone servers.</div>
+
+<h2>Introduction</h2>
+<p>The FirefoxID server allows users to disclose a third party verified mail address to a site. <a href="https://wiki.mozilla.org/MozillaID">A detailed discussion</a> of the protocol is provided on the wiki.</p>
+<p>We welcome discussion.</p>
+<h2>Notes for Setup</h2>
+<p>The "out of the box" setup for the server creates an in-memory, stand-alone server suitable for running on a single machine and testing the protocol. Some additional steps are required, please refer to the <a href="#standalone">Stand-alone</a> section for additional details.</p>
+<p>This module is constructed using Python 2.6 and Virtualenv 1.4.5+</p>
+<h3>Basic Requirements</h3>
+The following packages are required. For simplicity, I am using the debian package names, however it should be reasonably simple to determine the corresponding package names for your operating system of choice:
+<ul>
+<li>python-2.6</li>
+<li>python-virtualenv</li>
+<li>libsasl2-dev (required for stand alone)</li>
+<li>libssl-dev (required for stand alone)</li>
+</ul>
+<p>We run this server via <a href="http://gunicorn.org/">gunicorn</a> using <a href="http://nginx.org">nginx</a>. While it's possible to run this server beneath any other proxy service, we provide sample nginx configuration files.</p>
+<p>Most packages are installed as part of the make process. If you wish to use other aspects of this build, you may require the following optional packages:</p>
+<ul>
+<li>python-2.6-dev</li>
+<li>python-2.6-profiler</li>
+<li>python-redis</li>
+<li>python-ldap</li>
+<li>python-openid</li>
+<li>gnuplot (for bench reports)</li>
+<li>python-gnuplot</li>
+<li>libldap-dev</li>
+<li>mongodb</li>
+</ul>
+<h3><a name="installation">Installation</a></h3>
+<ol>
+<li>Pull the latest repository.</li>
+<li>modify <tt>etc/openid.conf</tt> to fit your configuration.<br />
+(leave as-is if you wish to run a stand alone server.)</li>
+<li>If you wish to use this server with an additional machine:
+<ul>
+<li>modify <tt>static/wrapper.js</tt> and change <tt>identityOrigin</tt> to point to your machine's Fully Qualified Domain Name (FQDN) (e.g. <tt>http://foo.example.com</tt>)</li>
+<li>modify <tt>static/js/service.js</tt> and change <tt>identityOrigin</tt> and <tt>identityBaseURL</tt> to point to your machine's FQDN. (Remember to include the <tt>/1/</tt> to <tt>identityBaseURL</tt>.)</li>
+</ul>
+<li><tt># mkdir -p /etc/oidserver; cp etc/* /etc/oidserver</tt></li>
+<li><tt>$ make build</tt><br />
+This will fetch the dependency libraries and build the various elements that are required.</li>
+</ol>
+<h3><a name="standalone">Stand Alone Server Installation</a></h3>
+<p>A stand-alone, in-memory server is a useful tool to play with the protocol without requiring the overhead of mongo, LDAP or other tools. The major issue with such a server is that restarting the server will flush all stored data.</p>
+<p>For a stand-alone server, you will also need to install and configure nginx. It is <em>Strongly</em> recommended that you run nginx on port 80. Once nginx is installed:</p>
+<ol>
+<li>Follow the steps listed in <b><a href="#installation">Installation</a></b></li>
+<li><tt># cp conf/nginx/conf.d/*.conf /etc/nginx/conf.d</tt></li>
+<li>Add the following server declaration in the http section:
+<pre>
+http {
+  <b>server {
+     listen 80 default;
+     include /etc/nginx/conf.d/*.conf;
+  }</b>
+  ...
+}
+</pre></li>
+<li>Add the following declaration to <tt>/etc/nginx/conf.d/astatic.conf</tt>:<br>
+<pre>
+<b>location ^~ /sample/ {
+   allow all;
+   root /var/www/;
+}</b></pre></li>
+<li><tt># mkdir -p /var/www/sample; cp -r sample/* /var/www/sample</tt></li>
+<li><tt># /etc/init.d/nginx restart</tt></li>
+</ol>
+<h3>Running the server</h3>
+<p>To run the server, simple execute:</br>
+<tt>$ bin/gunicorn -w 5 oidserver.run</tt>
+</p>
+<p><b> For stand-alone servers</b>, you may wish to run: </br>
+<tt>$ bin/gunicorn -w 1 oidserver.run -t 300</tt></p>
+<p>The demonstration page may be viewed at <a href="http://localhost/sample/">http://localhost/sample/</a>. 
+You should now be able to test the protocol. Email addresses may be anything. 
+Only accounts with a password containing "bad" will be rejected. <p>
+</body>
+</html>
