@@ -80,6 +80,8 @@ var IdentityService = function() {
    * Main service object.
    */
   return {
+    // If you wish to use this with other machines, modify these values to
+    // point to your FQDN.
     identityOrigin:  "http://localhost",
     identityBaseURL: "http://localhost/1/",
 
