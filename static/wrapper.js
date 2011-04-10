@@ -66,8 +66,8 @@
 
   log("Swizzling navigator.id.");
   navigator.id = {
-    isInjected: true,    // Differentiate from a built-in object.
-    unhook: null,        // This gets built later, once we know what to unhook!
+    isInjected: true,       // Differentiate from a built-in object.
+    unhook: function () {}, // This gets built later, once we know what to unhook!
 
     // The primary interface function. Do everything necessary to retrieve the
     // user's verified email, including creating popups. Calls 'callback'
