@@ -16,7 +16,9 @@ We welcome discussion.
 
 :Notes for setup:
 
-This module is constructed to use Python and VirtualEnv. 
+The "out of the box" setup for the server creates an in-memory, stand-alone server suitable for running on a single machine and testing the protocol. Some additional steps are required, please refer to the Stand-alone section for additional details.
+
+This module is constructed using Python 2.6 and Virtualenv 1.4.5+
 
 ::Basic Requirements::
 The following packages are required. For simplicity, I have limited these to
@@ -25,6 +27,8 @@ simple to determine the corresponding package names for your system:
 
     python-2.6
     python-virtualenv
+    libsasl2-dev (required for stand-alone)
+    libssl-dev (required for stand-alone)
 
 We run the package via nginx, although there's no requirement for deployment.
     nginx
@@ -102,15 +106,13 @@ location ^~ /sample/ {
 
 #. /etc/init.d/nginx restart
 
-#. bin/gunicorn -w 1 oidserver.run -t 300 
-I recommend using a program like screen or executing this in a separate
-terminal. 
+:: Running the Server ::
 
-#. Go to http://localhost/sample/
+To run the server, simply execute:
+$ bin/gunicorn -w 5 oidserver.run
 
-You should now be able to test the protocol. Email addresses may be 
-anything and only accounts with "bad" in the password will be rejected.
-(this is the system used by the unit tests).
+For stand-alone servers, you may wish to run:
+$ bin/gunicorn -w 1 oidserver.run -t 300
 
-
+The demonstration page may be viewed at http://localhost/sample/. You should now be able to test the protocol. Email addresses may be anything. Only accounts with a password containing "bad" will be rejected. 
 

@@ -51,6 +51,8 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                 raise OIDStorageException("Invalid handle specified")
         if secret is None:
             secret = self.gen_site_secret(request)
+        if email is None:
+            email = self.get_user_info(uid).get('pemail')
         self._assoc_db[handle] = {u'site_id': site_id,
                                   u'uid': uid,
                                   u'secret': secret,

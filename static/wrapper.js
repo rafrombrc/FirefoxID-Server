@@ -87,6 +87,8 @@
       var popup;                     // Window handle of our popup.
       var popupRequestMessage;       // Used to send replies from the popup.
 
+      // If you wish to use this with other machines, modify this value to 
+      // point to your FQDN
       var identityOrigin   = "http://localhost";
       var iframe           = document.createElement("iframe");
       iframe.style.display = "none";
