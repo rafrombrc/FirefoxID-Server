@@ -66,8 +66,8 @@
 
   log("Swizzling navigator.id.");
   navigator.id = {
-    isInjected: true,    // Differentiate from a built-in object.
-    unhook: null,        // This gets built later, once we know what to unhook!
+    isInjected: true,       // Differentiate from a built-in object.
+    unhook: function () {}, // This gets built later, once we know what to unhook!
 
     // The primary interface function. Do everything necessary to retrieve the
     // user's verified email, including creating popups. Calls 'callback'
@@ -87,7 +87,9 @@
       var popup;                     // Window handle of our popup.
       var popupRequestMessage;       // Used to send replies from the popup.
 
-      var identityOrigin   = "http://web4.dev.svc.mtv1.mozilla.com";
+      // If you wish to use this with other machines, modify this value to 
+      // point to your FQDN
+      var identityOrigin   = "http://localhost";
       var iframe           = document.createElement("iframe");
       iframe.style.display = "none";
       iframe.src           = identityOrigin + "/s/html/service_iframe.html";

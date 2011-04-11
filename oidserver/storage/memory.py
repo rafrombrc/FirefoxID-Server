@@ -51,6 +51,8 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                 raise OIDStorageException("Invalid handle specified")
         if secret is None:
             secret = self.gen_site_secret(request)
+        if email is None:
+            email = self.get_user_info(uid).get('pemail')
         self._assoc_db[handle] = {u'site_id': site_id,
                                   u'uid': uid,
                                   u'secret': secret,
@@ -90,6 +92,14 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         if handle not in self._assoc_db:
             return None
         return self._assoc_db[handle]
+
+    def get_associations_for_uid(self, uid):
+        result = []
+        for handle, hash in self._assoc_db.iteritems():
+            if hash.get('uid','') == uid:
+                result.append(hash)
+        return result
+
 
     def del_association(self, handle):
         if handle not in self._assoc_db:

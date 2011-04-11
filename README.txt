@@ -16,7 +16,9 @@ We welcome discussion.
 
 :Notes for setup:
 
-This module is constructed to use Python and VirtualEnv. 
+The "out of the box" setup for the server creates an in-memory, stand-alone server suitable for running on a single machine and testing the protocol. Some additional steps are required, please refer to the Stand-alone section for additional details.
+
+This module is constructed using Python 2.6 and Virtualenv 1.4.5+
 
 ::Basic Requirements::
 The following packages are required. For simplicity, I have limited these to
@@ -25,6 +27,8 @@ simple to determine the corresponding package names for your system:
 
     python-2.6
     python-virtualenv
+    libsasl2-dev (required for stand-alone)
+    libssl-dev (required for stand-alone)
 
 We run the package via nginx, although there's no requirement for deployment.
     nginx
@@ -58,10 +62,57 @@ via the virtualenv easyinstall:
         include -t 300 which will time out worker threads after 300 seconds,
         rather than the default 30 seconds.)
 
-This should bring up a server.
-
 If you are using nginx as your server platform:
     #. $ cp conf/nginx/conf.d/*.conf /etc/nginx/conf.d
     Please note that due to nginx conf processing considerations, astatic.conf needs
     to be processed before other "s*" based rules are resolved.
+
+This should bring up a server.
+
+:: Running a "stand-alone, in-memory server" ::
+A stand-alone, in-memory server is a useful tool to play with the protocol 
+without requiring the overhead of mongo, LDAP or other tools. The major 
+issue with such a server is that restarting the server will flush all entries.
+
+You will need to install nginx in order to use the stand-alone, in-memory 
+server. 
+
+::: Steps :::
+#. Pull the latest repository
+
+#. mkdir -p /etc/oidserver; cp etc/*.* /etc/oidserver
+
+#. cp conf/nginx/conf.d/* /etc/nginx/conf.d/
+
+#. customize for your platform.
+It is STRONGLY recommended that you run nginx on port 80 and that your
+/etc/nginx/nginx.conf contains the following server declaration in 
+the http section:
+
+    server {
+        listen 80 default;
+        include /etc/nginx/conf.d/*.conf;
+    }
+
+In addition, you should add the following declaration to 
+/etc/nginx/conf.d/astatic.conf:
+
+location ^~ /sample/ {
+    allow all;
+    root /var/www/;
+}
+
+#. mkdir -p /var/www/sample/; cp sample/* /var/www/sample
+
+#. /etc/init.d/nginx restart
+
+:: Running the Server ::
+
+To run the server, simply execute:
+$ bin/gunicorn -w 5 oidserver.run
+
+For stand-alone servers, you may wish to run:
+$ bin/gunicorn -w 1 oidserver.run -t 300
+
+The demonstration page may be viewed at http://localhost/sample/. You should now be able to test the protocol. Email addresses may be anything. Only accounts with a password containing "bad" will be rejected. 
 

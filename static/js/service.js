@@ -80,8 +80,10 @@ var IdentityService = function() {
    * Main service object.
    */
   return {
-    identityOrigin:  "http://web4.dev.svc.mtv1.mozilla.com",
-    identityBaseURL: "http://web4.dev.svc.mtv1.mozilla.com/1/",
+    // If you wish to use this with other machines, modify these values to
+    // point to your FQDN.
+    identityOrigin:  "http://localhost",
+    identityBaseURL: "http://localhost/1/",
 
     /*
      * Mini postMessage communication framework. Each mailbox represents a
@@ -234,7 +236,7 @@ var IdentityService = function() {
     getDefaultEmail: function getDefaultEmail(audience) {
       var op  = "get_default_email";
       var req = this.doRequest(op, {"audience": audience});
-      var rep = {result: req.success && req.responseJSON.email};
+      var rep = {result: req.success && req.responseJSON};
       return buildResponse(req, op, rep);
     },
 

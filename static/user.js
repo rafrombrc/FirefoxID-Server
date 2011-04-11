@@ -1,6 +1,6 @@
 (function() {
 
-    var identityBaseURL = 'http://web4.dev.svc.mtv1.mozilla.com/1/';
+    var identityBaseURL = 'http://localhost/1/';
 
     function log(m) {
         if (console.log) {
