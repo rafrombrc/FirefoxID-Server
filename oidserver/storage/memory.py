@@ -7,7 +7,7 @@ import time
 
 class MemoryStorage(OIDStorage, OIDStorageBase):
 
-    def __init__(self):
+    def __init__(self, **kw):
         self.sites = defaultdict(list)
         self.redirects = {}
         self._assoc_db = {}
