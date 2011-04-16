@@ -17,7 +17,7 @@ class OIDStorageBase:
         """ Generate a site specific Identifier from the request object
         """
         # originally, sep. based on scheme + host.
-        audience = request.params.get('audience','')
+        audience = request.params.get('audience', '')
         if "http:" in audience:
             return urlparse.urlparse(audience).netloc
         else:
@@ -55,6 +55,6 @@ class OIDStorageBase:
     def as_permission_list(cls, perm):
         list = []
         for name in cls._permissions_table.keys():
-            if (perm & self._permissions_table.get(name)):
+            if (perm & cls._permissions_table.get(name)):
                 list.append(name)
         return list

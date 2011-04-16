@@ -39,7 +39,7 @@ clean:
 
 package:
 	$(clean)
-	tar -zcvf ../oidserver.tar.gz README.txt Makefile nosetests.xml *.py conf etc loadtests oidserver static
+	tar -zcvf ../oidserver.tar.gz README.txt Makefile nosetests.xml *.py conf etc loadtests oidserver static pylintrc
 
 test:
 	$(NOSE) $(TESTS)

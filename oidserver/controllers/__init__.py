@@ -21,5 +21,8 @@ class BaseController(object):
             # can't match "nothing"
             return False
 
-    def logged(self, request):
-        return request.environ['beaker.session'].get('logged_in')
+    def get_session_uid(self, request):
+        return request.environ.get('beaker.session',{}).get('uid')
+
+    def set_session_uid(self, request, uid):
+        request.environ['beaker.session']['uid'] = uid

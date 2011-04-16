@@ -13,6 +13,7 @@
   id_create_url = pageargs.get('auth.id_create_url', default_url)
   id_learn_url = pageargs.get('auth.id_learn_url', 'default_url')
   request = pageargs.get('request', {'params': {}})
+  extra = pageargs.get('extra', {})
   audience = request.params.get('audience', '');
   audience_name = urlparse.urlsplit(audience).netloc
   use_default_checked = pageargs.get('use_default_checked', False)
@@ -29,6 +30,7 @@
  <link rel="stylesheet" type="text/css" href="/s/style.css" />
  </head>
  <body>
+  <header></header>
   <h1>Sign in with Your Firefox ID</h1>
     %if len(error) > 0:
      <div class="error">${error}</div>
@@ -40,7 +42,7 @@
     <b>${audience_name}</b>
     %endif
     </p>
-    <form action='login' method='POST'>
+    <form action='${config.get('oid.login_host','https://localhost')}/1/login' method='POST'>
     <p><label for="email">Email</label>
      <input type="text" name="email"></input></p>
     <p><label for="password">Password</label>
@@ -48,10 +50,14 @@
      <a href="${forgot_url}">I forgot my password</a></p>
      <input type="hidden" name="output" value="${output}" />
      <input type="hidden" name="audience" value="${audience}" />
+    %if 'validate' in extra :
+     <input type="hidden" name="validate" value="${extra.get('validate','')}" />
+    %endif
     <p class="useDefault"><input type="checkbox" name="use_default"
      ${use_default_checked} /><label for="use_default">Use my default
      identity</label> <a href="${id_help_url}">Identity?</a>
-     <div class="footer">
+    </p>
+     <footer>
      <div class="register"><b>Don't have a Firefox ID?</b>
      <a href="${id_create_url}">Create one</a> now or
      <a href="${id_learn_url}">learn why</a>
@@ -60,6 +66,7 @@
      <button class="submit" type="submit">Sign in</input>
      </div>
      </div>
+     </footer>
     </form>
  </body>
 </html>

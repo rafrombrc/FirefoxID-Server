@@ -1,7 +1,9 @@
+from datetime import datetime
 from oidserver.storage import OIDStorage, OIDStorageException
 from oidserver.storage.oidstoragebase import OIDStorageBase
 from pymongo.errors import OperationFailure
 from services import logger
+from services.util import randchar
 import json
 import pymongo
 import time
@@ -39,11 +41,19 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         """ _user schema:
             _id     user id
             pemail  primary email
-            emails  email list
+            emails  verified email list
+            unv_emails unverified email object dict
             sname   Surname
             fname   Family name
             data    non-indexable user data elements (e.g. avatar,
                         poco_server, preferred nickname, etc.)
+        """
+        self._validate_db = self._connection[database].validate
+        """
+            _validate schema:
+            _id     validation code
+            uid     user id
+            email   unverified email address
         """
 
     @classmethod
@@ -217,10 +227,11 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             raise OIDStorageException(
                 "Could not find association for %s [%s]" % (uid, str(ofe)))
 
-    def set_user_info(self, uid, pemail = None,
+    def create_user(self, uid, pemail = None,
                       sname = "",
                       fname = "",
                       emails = [],
+                      unv_emails = {},
                       data = {u'default_perms': 0},
                       **kw):
         """There's no real concept of "modify" here. You're updating the
@@ -236,6 +247,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             user_record = {u'_id': uid,
                              u'pemail': unicode(pemail),
                              u'emails': emails,
+                             u'unv_emails': unv_emails,
                              u'sname': unicode(sname),
                              u'fname': unicode(fname),
                              u'data': data
@@ -246,6 +258,16 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             logger.error("Could not set user info for %s [%s]" %
                             (uid, str(ofe)))
             raise OIDStorageException("Could not store user record")
+
+    def update_user(self, uid, user):
+        record = self._user_db.find_one({u'_id': uid})
+        if record is None:
+            return False
+        for key in user.keys():
+            if key != "_id":
+                record[key]=user.get(key)
+        self._user_db.save(record)
+        return record
 
     def del_user(self, uid, confirmed = False):
         if not confirmed:
@@ -261,3 +283,77 @@ class MongoStorage(OIDStorage, OIDStorageBase):
     #
     def get_sites(self, user_id):
         return self.get_associations_for_uid(user_id)
+
+    # email validation db calls.
+    def add_validation(self, uid, email):
+        rtoken =  ''.join([randchar() for i in range(26)])
+        validation_record = {u'_id': rtoken,
+                             u'uid': uid,
+                             u'created': datetime.now(),
+                             u'email': email}
+        try:
+            # Add the record to the
+            self._validate_db.save(validation_record)
+            user = self._user_db.find_one({u'_id': uid})
+            if 'unv_emails' not in user:
+                user['unv_emails']= {}
+            user['unv_emails'][email] = {'created': int(time.time()),
+                                 'conf_code': rtoken}
+            self._user_db.save(user)
+            return rtoken;
+        except OperationFailure as ofe:
+            logger.error("Could not store validation record for %s [%s]" %
+                         (uid, str(ofe)))
+            raise OIDStorageException("Could not store validation token")
+
+    def get_validation_token(self, uid, email):
+        token = self._validate_db.find_one({u'uid': uid, u'email': email})
+        return token['_id']
+
+    def remove_unvalidated(self, uid, email):
+        user = self._user_db.find_one({u'_id': uid})
+        if email in user['unv_emails']:
+            rtoken = user['unv_emails'][email]['conf_code']
+            del user['unv_emails'][email];
+            self._user_db.save(user)
+            try:
+                self._validate_db.remove(rtoken)
+            except OperationFailure as ofe:
+                logger.error("Could not remove unvalidated record %s:%s [%s]" %
+                             (uid, email, str))
+                return False
+        return True
+
+    def check_validation(self, token, uid):
+        try:
+            record = self._validate_db.find_one({u'_id': token})
+            if record is not None and record.get('uid') == uid:
+                user = self._user_db.find_one({u'_id': uid})
+                if user is not None:
+                    email = record['email']
+                    if email not in user['emails']:
+                        user['emails'].append(email)
+                    del user['unv_emails'][email]
+                    self._validate_db.remove({u'_id': token})
+                    self._user_db.save(user)
+                return email
+        except (OperationFailure, KeyError) as ofe:
+            logger.error("Could not validate token %s [%s]",
+                         token, str(ofe))
+            raise OIDStorageException("Could not validate token")
+        return False
+
+    def purge_validation(self, config = None):
+        if config is None:
+            config = {}
+        try:
+            expry = datetime.timedelta(config.get('auth.validation_expry_days',
+                                                  14))
+            self._validate_db.ensureIndex({'created': 1})
+            self._validate_db.remove({'created:':{'$lte':expry}})
+            return True
+        except OperationFailure as ofe:
+            logger.error("Could not purge old validation records [%s]",
+                         str(ofe))
+            raise OIDStorageException("Could not purge old validation recs")
+        return False;

@@ -1,16 +1,19 @@
 from hashlib import sha1, sha256
+from math import ceil
 from oidserver import logger
 from oidserver.controllers import BaseController
 from oidserver.storage import OIDStorageException
 from oidserver.util import get_template
 from services.util import extract_username
-from urllib import quote
+from time import time
+from urllib import quote, unquote
 from webob import Response
-from webob.exc import HTTPBadRequest, HTTPFound
+from webob.exc import HTTPBadRequest, HTTPFound, HTTPForbidden
 
 import base64
 import hmac
 import json
+import smtplib
 import time
 
 
@@ -36,17 +39,29 @@ class AuthController(BaseController):
                                   'reason': ''}
     }
 
-    def get_template_from_request(self, request):
+
+    def is_internal(self, request):
+        # placeholder function for internal only calls. Since the session
+        # cookie is a hash reference and restrci
+        return True
+
+    def get_template_from_request(self, request,
+                                  html_template = 'html_response',
+                                  **kw):
         if self.is_type(request, 'json'):
             template = get_template('json_response')
             content_type = 'application/json'
         else:
-            template = get_template('html_response')
+
+            template = get_template(html_template)
             content_type = 'text/html'
         return (content_type, template)
 
     #Responses
+    ## private
     def logged_in(self, request, **kw):
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         logged_in = False
         (content_type, template) = self.get_template_from_request(request)
         uid = self.get_uid(request)
@@ -74,6 +89,8 @@ class AuthController(BaseController):
     def get_default_email(self, request, **kw):
         """return the default email
         """
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         (content_type, template) = self.get_template_from_request(request)
         uid = self.get_uid(request)
         if uid is None:
@@ -103,6 +120,8 @@ class AuthController(BaseController):
     def get_emails(self, request, **kw):
         """return the default email
         """
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         body = ''
         (content_type, template) = self.get_template_from_request(request)
         uid = self.get_uid(request)
@@ -123,8 +142,9 @@ class AuthController(BaseController):
         return Response(str(body), content_type = content_type)
 
     def remove_association(self, request, **kw):
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         (content_type, template) = self.get_template_from_request(request)
-        # Check crumb !!
         uid = self.get_uid(request, strict=False)
         site = request.params.get('site_id', None)
         handle = self.app.storage.get_assoc_handle(uid,
@@ -146,6 +166,8 @@ class AuthController(BaseController):
         return Response(str(body), content_type = content_type)
 
     def get_identity_assertion(self, request, **kw):
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         body = ''
         (content_type, template) = self.get_template_from_request(request)
         iar = self.gen_identity_assertion(request)
@@ -159,37 +181,14 @@ class AuthController(BaseController):
                                        config = self.app.config)
         return Response(str(body), content_type = content_type)
 
-    def verify(self, request, **kw):
+    def authorize(self, request, **kw):
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         body = ''
-        (content_type, template) = self.get_template_from_request(request)
-        uid = self.get_uid(request)
-        user = None
-        if uid is not None:
-            user = self.app.storage.get_user_info(uid)
-        if uid is None or user is None:
-            body = template.render(
-                                request = request,
-                                config = self.app.config,
-                                error = self.error_codes.get('LOGIN_ERROR'))
-        else:
-            if not self.validate_json_web_token(request.params.get('iar', '')):
-                body = template.render(
-                                        request = request,
-                                        config = self.app.config,
-                                        error =
-                                           self.error_codes.get('INVALID'))
-            else:
-                body = template.render(request = request,
-                                           config = self.app.config)
-        return Response(str(body), content_type = content_type)
-
-    def authorize(self, request):
-        body = ''
-        (content_type, template) = self.get_template_from_request(request)
+        (content_type, template) = self.get_template_from_request(request,
+                                                html_template = 'authorize')
         # Override the default if this is an HTML request.
-        if 'html' in content_type:
-            template = get_template('authorize')
-        uid = request.environ.get('beaker.session', {}).get('logged_in', None)
+        uid = self.get_uid(request, strict = False)
         if uid is None:
             return self.login(request)
         user = self.app.storage.get_user_info(uid)
@@ -226,16 +225,77 @@ class AuthController(BaseController):
                 operation = 'login',
                 request = request)
         else:
-            # No email picked, present the listatp
+            # No email picked, present the list
             body = template.render(response = {'user': user},
                                        request = request)
         return Response(str(body), content_type = content_type)
 
-    def login(self, request, **kw):
+    def manage_info(self, request, **kw):
+        (content_type, template) = self.get_template_from_request(request)
+        uid = self.get_uid(request, strict=False)
+        if uid is None:
+            return HTTPBadRequest();
+        # pull out the special args.
+        new_user_info ={}
+        params = request.params.copy()
+        if params.get('fname',None):
+            new_user_info['fname'] = request.params['fname']
+            del (params['fname'])
+        if params.get('sname',None):
+            new_user_info['sname'] = request.params['sname']
+            del (params['sname'])
+        # additional params go into the "additional" user info section
+        self.app.storage.update_user(uid,new_user_info)
+        #boot back to the login page.
+        user_info = self.app.storage.get_user_info(uid)
+        raise HTTPFound(location = "https:/%s" % quote(user_info['pemail']))
+
+    def manage_email(self, request, **kw):
+        (content_type, template) = self.get_template_from_request(request,
+                                    html_template = 'confirm_email_notice')
+        uid = self.get_uid(request, strict=False)
+        if not uid:
+            return HTTPBadRequest()
+        if request.params.get('unv',None):
+            if (request.params.get('act',None)):
+                email = request.params.get('unv')
+                if '@' not in email:
+                    email = unquote(email)
+                action = request.params.get('act').lower()
+                if action == 'add':
+                    if self.send_validate_email(uid, email):
+                        user = self.app.storage.get_user_info(uid)
+                        body = template.render(request = request,
+                                               config = self.app.config,
+                                               user = user,
+                                               email = email)
+                        return Response(str(body),
+                                        content_type = content_type)
+                elif action == 'del':
+                    if not self.app.storage.remove_unvalidated(uid, email):
+                        body = template.render(request = request,
+                                        config = self.app.config,
+                                        email = email,
+                                        user = user,
+                                        error = self.error_codes('INVALID'))
+                    else:
+                        body = template.render(request = request,
+                                        config = self.app.config,
+                                        user = user,
+                                        email = email)
+                    return Response(str(body), content_type = content_type)
+                return HTTPBadRequest()
+        user_info = self.app.storage.get_user_info(uid)
+        raise HTTPFound(location = "https:/%s" %
+                        quote(user_info.get('pemail')))
+
+    ## public
+    def login(self, request, extra={}, **kw):
         response = {}
         error = {}
         clear_login = False;
-        (content_type, template) = self.get_template_from_request(request)
+        (content_type, template) = self.get_template_from_request(request,
+                                                    html_template = 'login')
         # User is not logged in or the association is not present.
         if (len(request.POST.get('email', '')) and
             len(request.POST.get('password', ''))):
@@ -255,21 +315,23 @@ class AuthController(BaseController):
             uid = self.app.auth.backend.authenticate_user(username,
                                                           password)
             if uid is not None:
+                self.set_session_uid(request, uid)
+                if 'validate' in request.params:
+                    return self.validate(request)
                 # User is valid, record the association
                 storage = self.app.storage
-                request.environ['beaker.session']['logged_in'] = uid
                 clear_login = False;
                 if not storage.gen_site_id(request):
                     # HTTPTemporaryRedirect = 307
                     # HTTPFound  = 302 // does not pass args.
-                    raise HTTPFound(location = "/%s" %
+                    raise HTTPFound(location = "https:/%s" %
                                                 quote(email))
                 assoc_handle = storage.get_assoc_handle(uid, request)
                 association = storage.get_association(assoc_handle)
                 user = storage.get_user_info(uid)
                 if user is None:
                     # Record the user
-                    user = storage.set_user_info(uid, email,
+                    user = storage.create_user(uid, email,
                                                  emails = [email, ]
                                                  )
                 if association is None or not association.get('state',True):
@@ -285,6 +347,7 @@ class AuthController(BaseController):
                         }
                     body = template.render(response = response,
                                             request = request,
+                                            extra = extra,
                                             config = self.app.config)
                     return Response(str(body), content_type = content_type)
             else:
@@ -296,12 +359,11 @@ class AuthController(BaseController):
             if uid is not None:
                 return self.authorize(request)
         # Display the login page for HTML only
-        if self.is_type(request, 'html'):
-            template = get_template('login')
         body = template.render(error = error,
-                                   response = response,
-                                   config = self.app.config,
-                                   request = request)
+                                response = response,
+                                config = self.app.config,
+                                extra = extra,
+                                request = request)
         resp = Response(str(body), content_type = content_type)
         if clear_login:
             resp.delete_cookie('beaker.session.id')
@@ -332,6 +394,30 @@ class AuthController(BaseController):
         resp.delete_cookie('beaker.session.id')
         return resp
 
+    def validate(self, request, **kw):
+        (content_type, tempate) = self.get_template_from_request(request)
+        token = request.sync_info.get('validate',
+                                      request.params.get('validate',
+                                                         None))
+        if token is None:
+            raise HTTPBadRequest()
+        uid = self.get_uid(request, strict=False)
+        if not uid:
+            extra={}
+            extra['validate']=token
+            return self.login(request, extra)
+        body = ""
+        email = self.app.storage.check_validation(token, uid)
+        if not email:
+            raise HTTPBadRequest()
+        template = get_template('validation_confirm')
+        user = self.app.storage.get_user_info(uid)
+        body = template.render(request = request,
+                               user = user,
+                               email = email,
+                               config = self.app.config)
+        return Response(str(body), content_type = 'text/html')
+
     #Utils
     def as_json_web_token(self, payload):
         server_secret = self.app.config.get('auth.server_secret', '')
@@ -352,6 +438,36 @@ class AuthController(BaseController):
         signature = hmac.new(server_secret, sig_base_string, sha256).digest()
         b64_sig = base64.b64encode(signature)
         return b64_sig == sig
+
+    def send_validate_email(self, uid, email):
+        #first, generate a token:
+        user = self.app.storage.get_user_info(uid)
+        if user is None:
+            return False
+        #store the unverified email
+        unv_emails = user.get('unv_emails',{});
+        if (email not in unv_emails):
+            rtoken = self.app.storage.add_validation(uid, email)
+        else:
+            rtoken = self.app.storage.get_validation_token(uid, email)
+        template = get_template('validate_email_body')
+        mailserv_name = self.app.config.get('oid.mail_server',
+                                                  'localhost')
+        verify_url = (self.app.config.get('oid.validate_host',
+                                         'http://localhost') +
+                                        '/1/validate/' + rtoken )
+        body = template.render(from_addr =
+                                self.app.config.get('oid.default_from',
+                                                    'no-reply@'+mailserv_name),
+                               to_addr = email,
+                               verify_url = verify_url)
+        server = smtplib.SMTP(mailserv_name)
+        server.sendmail(self.app.config.get('oid.default_from',
+                        'noreply@' + mailserv_name),
+                        email,
+                        body);
+        server.quit()
+        return True;
 
     def check_signature(self, uid, request):
         """ Check the enclosed signature """
@@ -407,7 +523,7 @@ class AuthController(BaseController):
             if assoc_record is not None:
                 return assoc_record.get('uid', None)
         try:
-            uid = request.environ['beaker.session']['logged_in']
+            uid = self.get_session_uid(request)
             # Check the assoc_record to see if this association is still valid
             if strict and not self.isAssociationValid(uid, request):
                 return None

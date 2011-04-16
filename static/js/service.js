@@ -35,9 +35,9 @@
  * ***** END LICENSE BLOCK ***** */
 
 /*
- * Server-side Javascript module that implements the Firefox Identity API:
+ * Server-side Javascript module that implements the Mozilla Identity API:
  *
- *   https://wiki.mozilla.org/FirefoxID
+ *   https://wiki.mozilla.org/MozillaID
  *
  */
 
@@ -80,10 +80,8 @@ var IdentityService = function() {
    * Main service object.
    */
   return {
-    // If you wish to use this with other machines, modify these values to
-    // point to your FQDN.
-    identityOrigin:  "http://localhost",
-    identityBaseURL: "http://localhost/1/",
+    identityOrigin:  "https://web4.dev.svc.mtv1.mozilla.com",
+    identityBaseURL: "https://web4.dev.svc.mtv1.mozilla.com/1/",
 
     /*
      * Mini postMessage communication framework. Each mailbox represents a
@@ -243,7 +241,7 @@ var IdentityService = function() {
     getEmails: function getEmails(audience) {
       var op  = "get_emails";
       var req = this.doRequest(op, {"audience": audience});
-      var rep = {result: req.success && req.responseJSON.emails};
+      var rep = {result: req.success && req.responseJSON};
       return buildResponse(req, op, rep);
     },
 

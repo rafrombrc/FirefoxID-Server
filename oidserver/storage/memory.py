@@ -121,10 +121,11 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
     def get_user_info(self, uid):
         return self._user_db.get(uid, None)
 
-    def set_user_info(self, uid, pemail = None,
+    def create_user(self, uid, pemail = None,
                       sname = "",
                       fname = "",
                       emails = [],
+                      unverified_emails = [],
                       data = {'default_perms': 0},
                       **kw):
         # Must supply either pemail or emails
@@ -139,10 +140,21 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         user_record = {u'uid': uid,
                        u'pemail': pemail,
                        u'emails': emails,
+                       u'unv_emails': unverified_emails,
                        u'fname': fname,
                        u'sname': sname,
                        u'data': data}
         self._user_db[uid] = user_record
+
+    def update_user(self, uid, user):
+        record = self._user_db.get(uid)
+        if record is None:
+            return False
+        for key in user.keys():
+            if key != "_id":
+                record[key]=user.get(key)
+        self._user_db[uid] = record
+        return record
 
     def del_user(self, uid, request, confirmed=False):
         if confirmed:
@@ -151,3 +163,52 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
             return True
         else:
             return False
+
+    def add_validation(self, uid, email):
+        rtoken =  ''.join([randchar() for i in range(26)])
+        validation_record = {u'uid': uid,
+                             u'created': datetime.now(),
+                             u'email': email}
+        user = self._user_db[uid]
+        user['unv_emails'][email] = {'created': int(time.time()),
+                                 'conf_code': rtoken}
+        self._user_db[uid]=user
+        self._validate_db[rtoken] = validation_record
+        return rtoken
+
+    def get_validation_token(self, uid, email):
+        for key in self._validate_rb.keys():
+            if (self._validate_rb[key].get('uid') == uid and
+                self._validate_rb[email].get('email') == email):
+                return key
+        return None
+
+    def remove_unvalidated(self, uid, email):
+        user = self._user_db[uid]
+        if email in user['unv_emails']:
+            rtoken = user['unv_emails'][email]['conf_code']
+            try:
+                del user['unv_emails'][email];
+                self._user_db[uid]=user
+                del self._validate_db[rtoken]
+            except KeyError:
+                return false
+        return true
+
+    def check_validation(self, token):
+        try:
+            record = self._validate_db.get(token, None)
+            if record is not None:
+                user = self._user_db.get({u'_uid': uid})
+                if user is not None:
+                    user['emails'].append(record['email'])
+                    del self._validate_db[token]
+                self._user_db.save(user)
+                return True
+        except (OperationFailure, KeyError) as ofe:
+            logger.error("Could not validate token %s [%s]",
+                         token, str(ofe))
+            raise OIDStorageException("Could not validate token")
+
+    def purge_validation(self, config = None):
+        return True

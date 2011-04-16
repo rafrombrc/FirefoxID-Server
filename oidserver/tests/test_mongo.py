@@ -50,7 +50,7 @@ if MONGO:
         def test_add_user(self):
             storage = self.app.app.wrap_app.app.storage
             uid = self.user_info.get('uid')
-            user_info = storage.set_user_info(uid,
+            user_info = storage.create_user(uid,
                         pemail = self.user_info.get('pemail'))
             f_user_info = storage.get_user_info(uid)
             self.assertEqual(user_info, f_user_info)

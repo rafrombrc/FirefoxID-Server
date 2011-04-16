@@ -15,20 +15,25 @@ class OIDController(BaseController):
     def get_user_info(self, request, **params):
         """ Display the appropriate user page or discovery page """
         user = str(request.sync_info['user'])
-        params = {'user': user, 'host': self.app.config['oid.host']}
+        params = {'user': user,
+                  'host': self.app.config['oid.host'],
+                  'login_host': self.app.config.get('oid.login_host',
+                            'localhost')}
 
         if 'application/xrds+xml' in request.headers.get('Accept', ''):
             # Display the YADis discovery page
             template = get_template('yadis')
             ct = 'application/xrds+xml'
         else:
-            logged = self.logged(request)
-            if logged is not None:
+            uid = self.get_session_uid(request)
+            if uid is not None:
                 # Convert the user name to a standardized token
                 user_name = extract_username(user)
                 user_id = self.app.auth.backend.get_user_id(user_name)
-                if user_id == logged:
+                if user_id == uid:
                     # hey that's me !
+                    user_info = self.app.storage.get_user_info(user_id)
+                    params['user_info'] = user_info
                     params['sites'] = \
                             self.app.storage.get_associations_for_uid(user_id)
             # Use the older style of discovery (with link refs)

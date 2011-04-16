@@ -67,7 +67,7 @@ class TestApi(unittest.TestCase):
         params.update(self.good_credentials)
         request.params.update(params)
         if True:
-            app.storage.set_user_info(self.user_info.get('uid'),
+            app.storage.create_user(self.user_info.get('uid'),
                                   pemail = self.user_info.get('pemail'),
                                   emails = self.user_info.get('emails'))
             if set_assoc:

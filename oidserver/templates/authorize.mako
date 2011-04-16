@@ -1,3 +1,4 @@
+<!DOCTYPE HTML>
 <html>
  <head>
 <%
@@ -43,6 +44,7 @@
  <meta name="page" content="associate" />
  </head>
  <body>
+ <header></header>
   <h1>Sign in with Your Firefox ID</h1>
     %if len(error) > 0:
      <div class="error">${error}</div>
@@ -58,7 +60,7 @@
      <label for="email_${icnt}">${email}</label></p>
      <% icnt = icnt + 1 %>
     % endfor
-     <div class="footer">
+     <footer>
      <div class="commands">
      <a href="${add_email_url}">Add a new email address</a>
      <a href="${manage_acct_url}">Manage my Firefox ID</a>
@@ -69,6 +71,7 @@
      <button type="submit" class="submit">Sign In</button>
      <div>
      <input type="hidden" name="audience" value="${audience}" />
+     </footer>
     </form>
  </body>
 </html>

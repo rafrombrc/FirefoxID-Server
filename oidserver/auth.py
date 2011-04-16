@@ -35,15 +35,12 @@
 # ***** END LICENSE BLOCK *****
 from services.wsgiauth import Authentication
 from webob.exc import HTTPTemporaryRedirect
+from oidserver.controllers import BaseController
 
-
-class OIDAuthentication(Authentication):
-
-    def _logged(self, request):
-        return request.environ['beaker.session'].get('logged_in')
+class OIDAuthentication(Authentication, BaseController):
 
     def check(self, request, match):
-        if self._logged(request) is not None:
+        if self.get_session_uid(request) is not None:
             return
         if match['controller'] != 'oid':
             return

@@ -1,6 +1,6 @@
 (function() {
 
-    var identityBaseURL = 'http://localhost/1/';
+    var identityBaseURL = 'https://web4.dev.svc.mtv1.mozilla.com/1/';
 
     function log(m) {
         if (console.log) {
@@ -19,7 +19,7 @@
         document.getElementById('error').innerHTML = '';
     }
 
-    function postAction(s) {
+    function postDisable(s) {
         var req = new XMLHttpRequest();
         var uri = identityBaseURL + 'remove_association'
         var action = s.currentTarget.value;
@@ -49,12 +49,41 @@
         s.currentTarget.disabled = true;
         return false;
     }
+
+    function postResend(s) {
+        var req = new XMLHttpRequest();
+        var uri = identityBaseURL + 'manage_email'
+        var postArg = new FormData();
+        postArg.append('output', 'json');
+        postArg.append('act', 'add');
+        postArg.append('unv_email', s.currentTarget.value);
+
+        try{
+            req.open("POST", uri, false);
+            req.send(postArg);
+            resp = JSON.parse(req.responseText);
+            if (resp.success) {
+                s.currentTarget.innerHTML='Sent';
+                return true;
+            }
+        } catch (ex) {
+            log("Got exception " + ex + " to " + uri);
+        }
+        error("Sorry, I couldn't resend that email.");
+        return false;
+    }
         
     function init() {
+        var i;
+        var buttons;
         buttons = document.getElementsByClassName('disable');
-        for (var i = 0;i < buttons.length; i++) {
-            buttons[i].addEventListener("click", postAction, false)
+        for (i = 0;i < buttons.length; i++) {
+            buttons[i].addEventListener("click", postDisable, false)
             buttons[i].disabled = false;
+        }
+        buttons = document.getElementsByClassName('validate');
+        for (i = 0;i < buttons.length; i++) {
+            buttons[i].addEventListener("click", postResend, false)
         }
     }
 

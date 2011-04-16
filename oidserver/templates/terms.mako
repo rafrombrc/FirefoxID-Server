@@ -43,6 +43,7 @@
  <meta name="page" content="terms" />
  </head>
  <body>
+  <header></header>
   <h1>Please Read</h1>
   <div class="text">
   <h2>Terms of Use</h2>
@@ -57,6 +58,7 @@
      <div>
      <input type="hidden" name="audience" value="${audience}" />
     </form>
+    <footer></footer>
     <script src="user.js"></script>
  </body>
 </html>

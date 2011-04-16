@@ -59,14 +59,16 @@ urls = [
         # get the identity assertion document.
         ('POST', '/1/get_identity_assertion', 'auth',
                 'get_identity_assertion'),
+        ('POST', '/1/authorize', 'auth', 'authorize'),
+        ('POST', '/1/manage_info', 'auth', 'manage_info'),
+        ('POST', '/1/manage_email', 'auth', 'manage_email'),
+        # You're logged in, now authorize the email address
+        ('GET', '/1/validate/{validate:[\w]+}', 'auth', 'validate'),
         ## public
         # verify that the identity assertion is valid.
         (('GET', 'POST'), '/1/login', 'auth', 'login'),
         # Log the user out of the system
         (('GET','POST'), '/1/logout', 'auth', 'login'),
-        # You're logged in, now authorize the email address
-        ('POST', '/1/authorize', 'auth', 'authorize'),
-        ('POST', '/1/verify', 'auth', 'verify'),
         ('GET', '/{user:[@\w\.\-\+]+}', 'oid', 'get_user_info'),
         ]
 
@@ -95,6 +97,7 @@ def _wrap(app):
     options = {'session.type': 'file',
                'session.data_dir': '/tmp/cache/data',
                'session.cookie_expires': True,
+               'session.secure': True,
                'session.auto': True}
     return SessionMiddleware(app, options)
 
