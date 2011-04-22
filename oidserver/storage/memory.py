@@ -1,8 +1,12 @@
 from collections import defaultdict
+from datetime import datetime
 from hashlib import sha1
 from oidserver.storage import OIDStorage, OIDStorageException
 from oidserver.storage.oidstoragebase import OIDStorageBase
+from services import logger
+from services.util import randchar
 import time
+import types
 
 
 class MemoryStorage(OIDStorage, OIDStorageBase):
@@ -12,6 +16,7 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         self.redirects = {}
         self._assoc_db = {}
         self._user_db = {}
+        self._validate_db = {}
 
     @classmethod
     def get_name(self):
@@ -96,10 +101,9 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
     def get_associations_for_uid(self, uid):
         result = []
         for handle, hash in self._assoc_db.iteritems():
-            if hash.get('uid','') == uid:
+            if hash.get('uid', '') == uid:
                 result.append(hash)
         return result
-
 
     def del_association(self, handle):
         if handle not in self._assoc_db:
@@ -122,10 +126,9 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         return self._user_db.get(uid, None)
 
     def create_user(self, uid, pemail = None,
-                      sname = "",
-                      fname = "",
+                      name = "",
                       emails = [],
-                      unverified_emails = [],
+                      unverified_emails = {},
                       data = {'default_perms': 0},
                       **kw):
         # Must supply either pemail or emails
@@ -141,8 +144,7 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                        u'pemail': pemail,
                        u'emails': emails,
                        u'unv_emails': unverified_emails,
-                       u'fname': fname,
-                       u'sname': sname,
+                       u'name': name,
                        u'data': data}
         self._user_db[uid] = user_record
 
@@ -151,28 +153,36 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         if record is None:
             return False
         for key in user.keys():
+            # handle the "data" bucket
+            if type(user[key]) is types.DictType:
+                if not record[key]:
+                    record[key] = {}
+                record[key].update(user[key])
+                continue
             if key != "_id":
-                record[key]=user.get(key)
+                record[key] = user.get(key)
         self._user_db[uid] = record
         return record
 
-    def del_user(self, uid, request, confirmed=False):
+    def del_user(self, uid, confirmed = False):
         if confirmed:
-            handle = self.get_assoc_handle(uid, request)
-            del self._user_db[handle]
+            del self._user_db[uid]
             return True
         else:
             return False
 
     def add_validation(self, uid, email):
-        rtoken =  ''.join([randchar() for i in range(26)])
+        rtoken = ''.join([randchar() for i in range(26)])
         validation_record = {u'uid': uid,
                              u'created': datetime.now(),
                              u'email': email}
         user = self._user_db[uid]
-        user['unv_emails'][email] = {'created': int(time.time()),
-                                 'conf_code': rtoken}
-        self._user_db[uid]=user
+        if 'unv_emails' not in user:
+            user['unv_emails'] = {}
+        user['unv_emails'][email.encode('ascii')] = \
+                {'created': int(time.time()),
+                 'conf_code': rtoken}
+        self._user_db[uid] = user
         self._validate_db[rtoken] = validation_record
         return rtoken
 
@@ -188,27 +198,30 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         if email in user['unv_emails']:
             rtoken = user['unv_emails'][email]['conf_code']
             try:
-                del user['unv_emails'][email];
-                self._user_db[uid]=user
+                del user['unv_emails'][email]
+                self._user_db[uid] = user
                 del self._validate_db[rtoken]
             except KeyError:
-                return false
-        return true
+                return False
+        return True
 
-    def check_validation(self, token):
+    def check_validation(self, token, uid):
         try:
             record = self._validate_db.get(token, None)
-            if record is not None:
-                user = self._user_db.get({u'_uid': uid})
+            if record is not None and record.get('uid') == uid:
+                user = self._user_db.get(uid)
                 if user is not None:
-                    user['emails'].append(record['email'])
+                    email = record['email']
+                    user['emails'].append(email)
+                    del user['unv_emails'][email]
                     del self._validate_db[token]
-                self._user_db.save(user)
+                self._user_db[uid] = user
                 return True
-        except (OperationFailure, KeyError) as ofe:
+        except (KeyError) as ofe:
             logger.error("Could not validate token %s [%s]",
                          token, str(ofe))
             raise OIDStorageException("Could not validate token")
+        return False
 
     def purge_validation(self, config = None):
         return True

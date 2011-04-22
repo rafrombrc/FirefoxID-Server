@@ -282,3 +282,22 @@ def create_association(storage, expires_in=3600, **params):
                             False, expires_in)
     res = ['%s:%s' % (key, value) for key, value in res.items()]
     return '\n'.join(res)
+
+# The following filters are not guaranteed safe, but should trap most
+# unsafe behaviors.
+# Exceptionally paranoid string to HTML.
+def text_to_html_filter(unsafe_string):
+    safe_str = ' abcdefghijklmnopqrstuvwxyz0123456789&#;,.-+@_'
+    out = []
+    for letter in unsafe_string:
+        if letter.lower() in safe_str:
+           out.append(letter)
+        else:
+            out.append('&#x' + hex(ord(letter)) + ';')
+    return ''.join(out)
+
+# only accept urls begining with 'http' (to prevent inline script attacks)
+def url_filter(unsafe_url):
+    if unsafe_url.lower().startswith('http'):
+        return unsafe_url
+    return None

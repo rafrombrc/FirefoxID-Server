@@ -27,7 +27,9 @@ confirmation mail by visiting your <a href="${admin_url}">admin console</a>
 </p>
 </div>
 <footer>
-<p><a href="${admin_url}">Return to the admin console</a></p>
+    <div class="buttons">
+<a href="${admin_url}" class="fakebutton">Return to the admin console</a>
+    </div>
 </footer>
 </body>
 </html>

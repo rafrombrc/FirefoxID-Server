@@ -1,6 +1,11 @@
+from hashlib import sha1
 
 
 class BaseController(object):
+
+    # used for unit testing only
+    fake_session = {}
+
     def __init__(self, app):
         self.app = app
 
@@ -22,7 +27,29 @@ class BaseController(object):
             return False
 
     def get_session_uid(self, request):
-        return request.environ.get('beaker.session',{}).get('uid')
+        if self.fake_session:
+            return self.fake_session.get('uid', None)
+        return request.environ.get('beaker.session', {}).get('uid')
 
     def set_session_uid(self, request, uid):
-        request.environ['beaker.session']['uid'] = uid
+        if 'beaker.session' in request.environ:
+            request.environ['beaker.session']['uid'] = uid
+            return True
+        return False
+
+    def gen_signature(self, uid, request):
+        """ Generate a signature value (to prevent XSS) """
+        remote = request.remote_addr or 'localhost'
+        sbs = (remote +
+            self.app.config.get('auth.secret_salt', '') +
+            str(uid))
+        return sha1(sbs).hexdigest()
+
+    def check_signature(self, uid, request):
+        """ Check the enclosed signature """
+        if 'sig' not in request.params:
+            return False
+        sig_val = request.params.get('sig', '')
+        if len(sig_val) < 1:
+            return False
+        return sig_val != self.gen_signature(uid, request)

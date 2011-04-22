@@ -30,8 +30,10 @@
  <link rel="stylesheet" type="text/css" href="/s/style.css" />
  </head>
  <body>
-  <header></header>
+  <header>
   <h1>Sign in with Your Firefox ID</h1>
+  </header>
+  <main>
     %if len(error) > 0:
      <div class="error">${error}</div>
     %endif
@@ -42,7 +44,7 @@
     <b>${audience_name}</b>
     %endif
     </p>
-    <form action='${config.get('oid.login_host','https://localhost')}/1/login' method='POST'>
+    <form id="formlogin" action='${config.get('oid.login_host','https://localhost')}/1/login' method='POST'>
     <p><label for="email">Email</label>
      <input type="text" name="email"></input></p>
     <p><label for="password">Password</label>
@@ -57,16 +59,19 @@
      ${use_default_checked} /><label for="use_default">Use my default
      identity</label> <a href="${id_help_url}">Identity?</a>
     </p>
+    </form>
+    </main>
      <footer>
      <div class="register"><b>Don't have a Firefox ID?</b>
      <a href="${id_create_url}">Create one</a> now or
      <a href="${id_learn_url}">learn why</a>
+     </div>
      <div class="buttons">
      <button class="cancel" type="cancel">Cancel</input>
-     <button class="submit" type="submit">Sign in</input>
-     </div>
+     <button class="submit" type="submit" value="formlogin">Sign in</input>
      </div>
      </footer>
+    <script src="/s/user.js"></script>
     </form>
  </body>
 </html>

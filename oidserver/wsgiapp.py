@@ -68,7 +68,8 @@ urls = [
         # verify that the identity assertion is valid.
         (('GET', 'POST'), '/1/login', 'auth', 'login'),
         # Log the user out of the system
-        (('GET','POST'), '/1/logout', 'auth', 'login'),
+        (('POST'), '/1/logout', 'auth', 'logout'),
+        (('POST'), '/1/verify', 'auth', 'verify'),
         ('GET', '/{user:[@\w\.\-\+]+}', 'oid', 'get_user_info'),
         ]
 

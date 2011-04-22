@@ -29,9 +29,13 @@ class TestApi(unittest.TestCase):
                  'emails': ['good@example.com',
                             'test@example.org']}
 
-    extra_environ = {'beaker.session': {'logged_in': 'test_api_1'}}
+    ## beaker is being stupid and overwriting session information
+    beaker_is_being_stupid = True
 
-    def setUp(self,**kw):
+    extra_environ = {'beaker.session': {'uid': 'test_api_1'}}
+    session = {}
+
+    def setUp(self, **kw):
         # use a default 'dummy' config file.
         config = {
             'oidstorage.backend': 'memory',
@@ -40,19 +44,24 @@ class TestApi(unittest.TestCase):
             'auth.backend': '%s.%s' % (FakeAuthTool.__module__,
                                       FakeAuthTool.__name__),
 #            'oidstorage.backend': 'mongo',
-#            'oid.host': 'http://web4.svc.mtv1.mozilla.com'
+#            'oid.host': 'http: //web4.svc.mtv1.mozilla.com'
+             'oid.mail_host': 'localhost',
+             'oid.from_address': 'test@example.org',
+             'oid.reply_to': 'no-reply@example.net',
+             'test.nomail': True
             }
         self.app = TestApp(make_app(config))
         self.app.reset()
-        self.prep_db(kw)
+        self.prep_db(**kw)
 
     def check_default(self, result_obj, operation = None):
         """ Check that the default parameters survived """
+
         sid = result_obj.get('sid', None)
         self.failIf(sid is None)
         self.failIf(sid != self.default_params.get('sid', ''))
         if operation is not None:
-            operation = operation[operation.rfind('/') + 1:]
+            operation = operation[operation.rfind('/') + 1: ]
             roper = result_obj.get('operation', None)
             self.failIf(roper is None)
             self.assertEqual(roper, operation)
@@ -70,25 +79,34 @@ class TestApi(unittest.TestCase):
             app.storage.create_user(self.user_info.get('uid'),
                                   pemail = self.user_info.get('pemail'),
                                   emails = self.user_info.get('emails'))
+            # Log in the user.
+            if (self.beaker_is_being_stupid):
+                # beaker is overwriting extra_environ, so force the session
+                # uid. This is an annoying hack around an annoying problem.
+                app.controllers['auth'].fake_session['uid'] = \
+                    self.user_info.get('uid')
             if set_assoc:
                 app.storage.set_association(self.user_info.get('uid'),
                                     request,
                                     email = self.user_info.get('pemail'))
-        # Log in the user.
                 self.app.post('/1/login',
                                  params = params)
 
     def purge_db(self):
         storage = self.app.app.wrap_app.app.storage
-        storage.del_user(self.user_info.get('uid'), True)
+        handle = storage.get_assoc_handle(uid = self.user_info.get('uid'),
+                            request = None,
+                            site_loc = self.default_params['audience'])
+        storage.del_association(handle)
+        storage.del_user(self.user_info.get('uid'), confirmed = True)
 
     def test_get_default_email(self):
         """ get the default email for this user """
         self.setUp()
-        self.prep_db()
         path = '/1/get_default_email'
+        params = self.default_params.copy()
         response = self.app.post(path,
-                                 params = self.default_params,
+                                 params = params,
                                  extra_environ = self.extra_environ,
                                  status = 200)
         resp_obj = json.loads(response.body)
@@ -100,7 +118,6 @@ class TestApi(unittest.TestCase):
     def test_get_emails(self):
         """ get list of valid emails for this user """
         self.setUp()
-        self.prep_db()
         path = '/1/get_emails'
         response = self.app.post(path,
                                  params = self.default_params,
@@ -118,7 +135,6 @@ class TestApi(unittest.TestCase):
     def test_get_identity_assertion(self):
         """ Get an identity assertion document for this user/site """
         self.setUp()
-        self.prep_db()
         path = '/1/get_identity_assertion'
         response = self.app.post(path,
                                  params = self.default_params,
@@ -143,21 +159,28 @@ class TestApi(unittest.TestCase):
     def test_logged_in(self):
         """ check if the user is logged in to a given associated site """
         path = '/1/logged_in'
-        self.purge_db()
-        #"""
+        self.app.reset()
+        self.setUp()
+        """
         # Test not logged in at all.
-        # These tests are pending me figuring out how to kill sessions in beaker.
+        # These tests are pending me figuring out how to kill sessions
+        # in unit-test beaker.
+        self.purge_db()
+        params = self.default_params.copy()
+        import pdb; pdb.set_trace()
         response = self.app.post(path,
-                                 self.default_params,
+                                 params = params,
                                  status = 200)
         json_obj = json.loads(response.body)
         self.failIf(json_obj['success'] != False or
                     json_obj['error']['code'] != 401)
-        #Test if the user is logged in, but no association exists.
         self.app.reset()
+        # """
+        #Test if the user is logged in, but no association exists.
         self.setUp(set_assoc = False)
+        params = self.default_params.copy()
         response = self.app.post(path,
-                                    self.default_params,
+                                    params,
                                     extra_environ = self.extra_environ,
                                     status = 200)
         json_obj = json.loads(response.body)
@@ -169,7 +192,8 @@ class TestApi(unittest.TestCase):
         params = self.default_params.copy()
         params.update({'email': self.good_credentials.get('email')})
         self.app.reset()
-        response = self.app.post(path, params,
+        response = self.app.post(path,
+                                 params = params,
                                  extra_environ = self.extra_environ,
                                  status = 200)
         json.loads(response.body)
@@ -180,6 +204,26 @@ class TestApi(unittest.TestCase):
                         FakeRequest()),
             False)
         self.purge_db()
+
+    def test_logout(self):
+        self.setUp()
+        path = "/1/logout"
+        request = FakeRequest()
+        request.remote_addr = "127.0.0.1"
+        signature = self.app.app.wrap_app.app.\
+                    controllers['auth'].gen_signature(
+                        self.user_info.get('uid'),
+                        request)
+        params = self.default_params.copy()
+        params.update({'sig': signature})
+
+        self.app.post(path,
+                    params = params,
+                    extra_environ = self.extra_environ)
+        storage = self.app.app.wrap_app.app.storage
+        #cheating a bit since there should only be one association
+        assoc = storage.get_associations_for_uid(self.user_info.get('uid'))[0]
+        self.failIf(assoc['state'])
 
     def test_remove_association(self):
         """ Remove an association """
@@ -206,15 +250,15 @@ class TestApi(unittest.TestCase):
         self.purge_db()
         params = self.default_params.copy()
         params.update(self.good_credentials)
-        params.update({'output':'html'})
+        params.update({'output': 'html'})
         path = '/1/login'
-        res = self.app.post(path,
+        response = self.app.post(path,
                             params,
                             status = 200)
         ## This should return the assertion
         self.failIf('<meta name="page" content="associate" />' not in
-                    res.body)
-        self.failIf(self.user_info.get('pemail') not in res.body)
+                    response.body)
+        self.failIf(self.user_info.get('pemail') not in response.body)
 
     def test_heartbeat(self):
         self.app.get('/__heartbeat__',
@@ -224,3 +268,65 @@ class TestApi(unittest.TestCase):
         resp = self.app.get('/__debug__',
                      status = 200)
         self.failIf('Debug information' not in resp.body)
+
+    def test_update_info(self):
+        self.setUp()
+        storage = self.app.app.wrap_app.app.storage
+        params = self.default_params.copy()
+        test_info = {'name': "Leeroy Jenkins",
+                     'data.avatar': "http://example.org/icon.jpg"}
+
+        params.update(test_info)
+        path = '/1/manage_info'
+        self.app.post(path,
+                      params = params,
+                      extra_environ = self.extra_environ,
+                      status = 302)
+        user = storage.get_user_info(self.user_info.get('uid'))
+        self.assertEqual(user.get('name', None), test_info.get('name'))
+        self.assertEqual(user.get('data',{}).get('avatar', None),
+                         test_info.get('data.avatar'))
+
+        bad_info = {'name': '<script>alert("Evil");</script>',
+                    'data.avatar': 'script:alert("Evil)'}
+        params.update(bad_info)
+        self.app.post(path,
+                      params = params,
+                      extra_environ = self.extra_environ,
+                      status = 302)
+        user = storage.get_user_info(self.user_info.get('uid'))
+        self.failIf('<script>' in user.get('name'))
+        self.failIf(user.get('data').get('avatar', ''))
+        self.purge_db()
+
+    def test_add_email(self):
+        self.setUp()
+        storage = self.app.app.wrap_app.app.storage
+        params = self.default_params.copy()
+        test_info = {'unv': 'supplemental@example.org', 'act': 'add'}
+
+        params.update(test_info)
+        path = '/1/manage_email'
+        response = self.app.post(path,
+                      params = params,
+                      extra_environ = self.extra_environ,
+                      status = 200
+                      )
+        user = storage.get_user_info(self.user_info.get('uid'))
+        ## pull the confirmation code
+        conf_code = \
+            user.get('unv_emails').get(test_info['unv']).get('conf_code')
+
+        params = self.default_params.copy()
+        path = '/1/validate/' + conf_code
+        response = self.app.get(path,
+                                 params = params,
+                                 extra_environ = self.extra_environ,
+                                 status = 200)
+        self.failIf('<meta name="page" content="conf_email" />' not in
+            response.body)
+
+        user = storage.get_user_info(self.user_info.get('uid'))
+        self.failIf(test_info['unv'] not in user.get('emails'))
+        if user['unv_emails']:
+            self.failIf(test_info['unv'] in user['unv_emails'])

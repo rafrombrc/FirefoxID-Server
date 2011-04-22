@@ -50,20 +50,28 @@
         return false;
     }
 
-    function postResend(s) {
+    function postEmail(s) {
         var req = new XMLHttpRequest();
         var uri = identityBaseURL + 'manage_email'
         var postArg = new FormData();
+        var action = s.currentTarget.value;
         postArg.append('output', 'json');
-        postArg.append('act', 'add');
-        postArg.append('unv_email', s.currentTarget.value);
-
+        action.split('&').map( function(item){
+            kv = item.split('=');
+            postArg.append(kv[0],kv[1]);
+        });
         try{
             req.open("POST", uri, false);
             req.send(postArg);
             resp = JSON.parse(req.responseText);
             if (resp.success) {
-                s.currentTarget.innerHTML='Sent';
+                if (s.currentTarget.classList.contains('validate')) {
+                    s.currentTarget.innerHTML='Sent';
+                }
+                if (s.currentTarget.classList.contains('remove')) {                   
+                    parent = s.currentTarget.parentNode.parentNode;
+                    parent.parentNode.removeChild(parent);
+                }
                 return true;
             }
         } catch (ex) {
@@ -76,18 +84,42 @@
     function init() {
         var i;
         var buttons;
-        buttons = document.getElementsByClassName('disable');
-        for (i = 0;i < buttons.length; i++) {
-            buttons[i].addEventListener("click", postDisable, false)
-            buttons[i].disabled = false;
+        var button;
+        buttons = document.getElementsByTagName('button');
+        console.debug(buttons);
+        for (i = 0;button=buttons[i]; i++) {
+            if (button.className == "disable") {
+                button.addEventListener("click", postDisable, false)
+                button.disabled = false;
+            }
+            if (button.className == 'unv') {
+                buttons[i].addEventListener("click", postEmail, false)
+            }
+            if (button.className == 'go') {
+                button.addEventListener("click", function (b) {
+                    document.location = b.currentTarget.value;
+                }, false)
+            }
+            if(button.className=="submit") {
+                button.addEventListener("click", function(b){
+                    document.getElementById(b.currentTarget.value).submit();
+                }, false)
+            }
+            console.debug(button);
+            if (button.className=="logout") {
+                console.debug(button)
+                button.addEventListener("click", function(b){
+                   document.cookie = "beaker.session.id=0; expires=Thu, 01 Jan 1970 00:00:01 UTC; path=/"; 
+                    console.debug(document.cookie);
+                    document.location = document.location;
+                
+                }, false)
+            }
         }
-        buttons = document.getElementsByClassName('validate');
-        for (i = 0;i < buttons.length; i++) {
-            buttons[i].addEventListener("click", postResend, false)
-        }
+        console.debug(document.cookie);
     }
 
-    init();
+    document.addEventListener('load',init,true);
 
 })()
 

@@ -7,6 +7,7 @@ from services.util import randchar
 import json
 import pymongo
 import time
+import types
 
 
 class MongoStorage(OIDStorage, OIDStorageBase):
@@ -43,8 +44,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             pemail  primary email
             emails  verified email list
             unv_emails unverified email object dict
-            sname   Surname
-            fname   Family name
+            name    user name
             data    non-indexable user data elements (e.g. avatar,
                         poco_server, preferred nickname, etc.)
         """
@@ -66,7 +66,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
     def add_redirect(self, url, site, handle):
         self._redir_db.insert({u'url': url,
                            u'site': site,
-                           u'_id': handle})
+                           u'_id': handle}, safe = True)
         return handle
 
     def get_redirect(self, url):
@@ -106,7 +106,9 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             self._assoc_db.update({'handle': handle.lower(),
                                          'email': email},
                                         assoc_data,
-                                        upsert=True)
+                                        upsert = True,
+                                        multi = False,
+                                        safe = True)
             # return assoc_data
             return self._assoc_db.find_one({'handle': handle.lower(),
                                             'email': email})
@@ -180,7 +182,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         if email is not None:
             del_obj[u'email'] = email
         try:
-            self._assoc_db.remove(del_obj)
+            self._assoc_db.remove(del_obj, safe = True)
         except OperationFailure as ofe:
             raise OIDStorageException("Could not remove record %s [%s]" %
                                       (handle.lower(), str(ofe)))
@@ -252,7 +254,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                              u'fname': unicode(fname),
                              u'data': data
                              }
-            self._user_db.save(user_record)
+            self._user_db.save(user_record, safe = True)
             return user_record
         except OperationFailure as ofe:
             logger.error("Could not set user info for %s [%s]" %
@@ -264,9 +266,12 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         if record is None:
             return False
         for key in user.keys():
+            if type(user[key]) is types.DictType:
+                record[key].update(user[key])
+                continue
             if key != "_id":
                 record[key]=user.get(key)
-        self._user_db.save(record)
+        self._user_db.save(record, safe = True)
         return record
 
     def del_user(self, uid, confirmed = False):
@@ -274,8 +279,8 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             return False
         #delete the associated user and associations.
         # NOTE: This presumes that the user has confirmed
-        self._assoc_db.remove({u'uid': uid})
-        self._user_db.remove({u'_id': uid})
+        self._assoc_db.remove({u'uid': uid}, safe = True)
+        self._user_db.remove({u'_id': uid}, safe = True)
         return True
 
     #
@@ -293,13 +298,13 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                              u'email': email}
         try:
             # Add the record to the
-            self._validate_db.save(validation_record)
+            self._validate_db.save(validation_record, safe = True)
             user = self._user_db.find_one({u'_id': uid})
             if 'unv_emails' not in user:
                 user['unv_emails']= {}
             user['unv_emails'][email] = {'created': int(time.time()),
                                  'conf_code': rtoken}
-            self._user_db.save(user)
+            self._user_db.save(user, safe = True)
             return rtoken;
         except OperationFailure as ofe:
             logger.error("Could not store validation record for %s [%s]" %
@@ -315,7 +320,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         if email in user['unv_emails']:
             rtoken = user['unv_emails'][email]['conf_code']
             del user['unv_emails'][email];
-            self._user_db.save(user)
+            self._user_db.save(user, safe = True)
             try:
                 self._validate_db.remove(rtoken)
             except OperationFailure as ofe:
@@ -334,8 +339,8 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                     if email not in user['emails']:
                         user['emails'].append(email)
                     del user['unv_emails'][email]
-                    self._validate_db.remove({u'_id': token})
-                    self._user_db.save(user)
+                    self._validate_db.remove({u'_id': token}, safe = True)
+                    self._user_db.save(user, safe = True)
                 return email
         except (OperationFailure, KeyError) as ofe:
             logger.error("Could not validate token %s [%s]",

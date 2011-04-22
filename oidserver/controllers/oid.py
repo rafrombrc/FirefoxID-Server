@@ -33,13 +33,14 @@ class OIDController(BaseController):
                 if user_id == uid:
                     # hey that's me !
                     user_info = self.app.storage.get_user_info(user_id)
+                    print (user_info)
                     params['user_info'] = user_info
+                    params['sig'] = self.gen_signature(uid, request)
                     params['sites'] = \
                             self.app.storage.get_associations_for_uid(user_id)
             # Use the older style of discovery (with link refs)
             template = get_template('user')
             ct = 'text/html'
-
         res = template.render(**params)
         return Response(str(res), content_type=ct)
 

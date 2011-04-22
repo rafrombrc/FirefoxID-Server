@@ -6,8 +6,12 @@
         The email is sent out as plain text. HTML formatted email will require
         a bit of reworking of the auth.send_validate_email() function.
     """
+
 %>From: ${from_addr}
 To: ${to_addr}
+% if pageargs.get('reply_to',None):
+Reply-To: ${reply_to}
+% endif
 Subject: Please confirm your FirefoxID email address
 
 
