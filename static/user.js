@@ -1,6 +1,6 @@
 (function() {
 
-    var identityBaseURL = 'https://web4.dev.svc.mtv1.mozilla.com/1/';
+    var identityBaseURL = 'https://localhost/1/';   //CHANGE HOST
 
     function log(m) {
         if (console.log) {

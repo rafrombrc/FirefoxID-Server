@@ -33,7 +33,8 @@ http {
 
     server {
         listen      443;
-        include     /etc/nginx/conf.d/ssh/*.conf;
+        # The files in ssl are copies of the *.conf files
+        include     /etc/nginx/conf.d/ssl/*.conf;
 
         ssl         on;
         
@@ -50,3 +51,4 @@ http {
 #    include /etc/nginx/conf.d/*.conf;
 #    include /etc/nginx/sites-enabled/*;
      # == ^^
+}

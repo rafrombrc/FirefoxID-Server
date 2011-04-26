@@ -97,7 +97,7 @@ class OIDApp(SyncServerApp):
 def _wrap(app):
     options = {'session.type': 'file',
                'session.data_dir': '/tmp/cache/data',
-               'session.cookie_expires': True,
+               'session.cookie_expires': 300,
                'session.secure': True,
                'session.auto': True}
     return SessionMiddleware(app, options)
