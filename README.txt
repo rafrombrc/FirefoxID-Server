@@ -64,8 +64,23 @@ via the virtualenv easyinstall:
 
 If you are using nginx as your server platform:
     #. $ cp conf/nginx/conf.d/*.conf /etc/nginx/conf.d
-    Please note that due to nginx conf processing considerations, astatic.conf needs
-    to be processed before other "s*" based rules are resolved.
+    Please note that due to nginx conf processing considerations, astatic.conf
+    needs to be processed before other "s*" based rules are resolved.
+    #. FOR UBUNTU Configurations:
+        The packaged nginx configuration files are a bit different under 
+        Ubuntu (10.04). You will need to either modify the 
+        /etc/nginx/nginx.conf file or the individual nginx configuration
+        files.
+
+        Option 1:
+        Edit /etc/nginx/nginx.conf
+        This is recommended if you have not installed other nginx configurations.
+
+        nginx.conf:
+        #===
+        http {
+            ...
+            
 
 This should bring up a server.
 
