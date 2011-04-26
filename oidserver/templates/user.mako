@@ -1,7 +1,7 @@
 <%
 
   host = pageargs.get('host', 'localhost')
-  login_host = pageargs.get('login_host', 'localhost')
+  login_host = config.get('oid.login_host', 'https://localhost')
   user = pageargs.get('user', 'unknown')
   user_info = pageargs.get('user_info',{})
   sites = pageargs.get('sites', [])
@@ -55,7 +55,7 @@
     here for convienence.</p>
     <form action="${login_host}/1/manage_info" method="POST">
     <p><input name="name" value="${user_name}" placeholder="Name" /></p>
-    <p><input name="data.avatar" value="${user_avatar}" placeholder="Avatar URL" /></p>
+    <p><input name="avatar" value="${user_avatar}" placeholder="Avatar URL" /></p>
     <p><button class="submit" type="submit">Update Info</button></p>
     </form>
     </div>

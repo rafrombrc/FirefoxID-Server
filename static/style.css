@@ -10,9 +10,9 @@ input {border:1px solid #888; padding:2px;width:255px;}
 input.radio {width:auto;}
 .buttons{margin:0;padding:0;text-align:right;border-top:2px solid #e3ebf3;background:#f4f7fb;display:block;width:100%;padding:5px;height:4em;}
 header{position:fixed;top:0;width:475px;height:9EM;overflow:auto;margin;0;padding:0;background-image:-moz-linear-gradient(#FFF 80%,rgba(255,255,255,0)100%);z-index:100;}
-footer{position:fixed;bottom:0;width:475px;height:4em;margin:0;padding:0;background-image:-moz-linear-gradient(rgba(255,255,255,0) 0%,#FFF 30%,#f4f7fb 30%,#f4f7fb 100%)}
-main{position:relative;display:block;padding:7EM 0;}
-.commands {padding:1em 0;}
+footer{position:fixed;bottom:0;width:475px;;height:4EM;margin:0;padding:0;background-image:-moz-linear-gradient(rgba(255,255,255,0) 0%,#FFF 30%,#f4f7fb 30%,#f4f7fb 100%)}
+main{position:relative;display:block;padding:9EM 0;}
+.commands {padding:1em 0;width:475px;}
 .message {text-align:left;}
 .message .email {font-weight:bold;}
 button,.fakebutton {background-image:-moz-linear-gradient(center bottom,#E9E9E9,#FbFbFb);width:100px;padding:2px;margin:2px;display:inline-block;border-radius:5px;border:1px solid #888;}

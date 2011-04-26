@@ -39,10 +39,12 @@
                 s.currentTarget.disabled=true;
                 clearError();
             } else {
-                error("I'm sorry Dave, I'm afraid I can't do that.",resp);
+                console.debug(resp);
+                error("I'm sorry, there was an error. ");
+                return false;
             }
             return resp.success
-                
+
         } catch (ex) {
             log("Got exception " + ex + " to " + uri);
         }
@@ -68,7 +70,7 @@
                 if (s.currentTarget.classList.contains('validate')) {
                     s.currentTarget.innerHTML='Sent';
                 }
-                if (s.currentTarget.classList.contains('remove')) {                   
+                if (s.currentTarget.classList.contains('remove')) {
                     parent = s.currentTarget.parentNode.parentNode;
                     parent.parentNode.removeChild(parent);
                 }
@@ -80,13 +82,12 @@
         error("Sorry, I couldn't resend that email.");
         return false;
     }
-        
+
     function init() {
         var i;
         var buttons;
         var button;
         buttons = document.getElementsByTagName('button');
-        console.debug(buttons);
         for (i = 0;button=buttons[i]; i++) {
             if (button.className == "disable") {
                 button.addEventListener("click", postDisable, false)
@@ -100,27 +101,21 @@
                     document.location = b.currentTarget.value;
                 }, false)
             }
-            if(button.className=="submit") {
+            if(button.className=="rsubmit") {
                 button.addEventListener("click", function(b){
                     document.getElementById(b.currentTarget.value).submit();
                 }, false)
             }
-            console.debug(button);
             if (button.className=="logout") {
-                console.debug(button)
                 button.addEventListener("click", function(b){
-                   document.cookie = "beaker.session.id=0; expires=Thu, 01 Jan 1970 00:00:01 UTC; path=/"; 
-                    console.debug(document.cookie);
+                   document.cookie = "beaker.session.id=0; expires=Thu, 01 Jan 1970 00:00:01 UTC; path=/";
                     document.location = document.location;
-                
+
                 }, false)
             }
         }
-        console.debug(document.cookie);
     }
 
     document.addEventListener('load',init,true);
 
 })()
-
-

@@ -1,11 +1,21 @@
 from cPickle import loads, dumps
+from collections import defaultdict
+from datetime import datetime
 from hashlib import sha1
+from oidserver.storage import OIDStorage, OIDStorageException
+from oidserver.storage.oidstoragebase import OIDStorageBase
+from services import logger
+from services.util import randchar
+
 import redis
+import time
 
 
-class RedisStorage(object):
+class RedisStorage(OIDStorage, OIDStorageBase):
+    prefix = 'id'
 
-    def __init__(self, host='127.0.0.1'):
+    def __init__(self, host='127.0.0.1', port=6379, database='id', **kw):
+        self.prefix = database
         self._db = redis.Redis(host)
 
     @classmethod
@@ -27,10 +37,26 @@ class RedisStorage(object):
     #
     # Association APIs
     #
-    def add_association(self, handle, secret, assoc_type, private=False,
-                        expires_in=3600):
+    def set_association(self, uid, request,
+                        site_id = None,
+                        handle = None,
+                        secret = None,
+                        email = None,
+                        perms = 0,
+                        state = 1,
+                        **kw):
+
+        if handle is None:
+            handle = self.get_assoc_handle(uid, request)
+            if handle is None:
+                raise OIDStorageException("Invalid handle specified")
+        if secret is None:
+            secret = self.gen_site_secret(request)
+        if email is None:
+            email = self.get_user_info(uid).get('pemail')
+        handle = "assoc_" + handle
         dump = dumps((secret, assoc_type, private))
-        self._db.setex(handle, dump, expires_in)
+        self._db.set(handle, dump)
 
     def get_association(self, handle):
         secret = self._db.get(handle)

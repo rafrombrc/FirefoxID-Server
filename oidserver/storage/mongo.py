@@ -47,6 +47,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             name    user name
             data    non-indexable user data elements (e.g. avatar,
                         poco_server, preferred nickname, etc.)
+            assocs  Association ids
         """
         self._validate_db = self._connection[database].validate
         """
@@ -95,7 +96,8 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         if email is None:
             email = self.get_user_info(uid).get('pemail')
         try:
-            assoc_data = {u'handle': handle.lower(),
+            handle = handle.lower()
+            assoc_data = {u'handle': handle,
                            u'site_id': site_id,
                            u'uid': uid,
                            u'secret': secret,
@@ -103,14 +105,21 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                            u'perms': perms,
                            u'created': int(time.time()),
                            u'state': state}
-            self._assoc_db.update({'handle': handle.lower(),
+            self._assoc_db.update({'handle': handle,
                                          'email': email},
                                         assoc_data,
                                         upsert = True,
                                         multi = False,
                                         safe = True)
+            user = self.get_user_info(uid)
+            if handle.lower() not in user.get('assocs',[]):
+                if 'assocs' not in user:
+                    user['assocs'] = [handle]
+                else:
+                    user['assocs'].append(handle)
+                self._user_db.save(user, safe = True)
             # return assoc_data
-            return self._assoc_db.find_one({'handle': handle.lower(),
+            return self._assoc_db.find_one({'handle': handle,
                                             'email': email})
         except OperationFailure as ofe:
             logger.error("Can't store association %s for %s [%s]" %
@@ -234,7 +243,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                       fname = "",
                       emails = [],
                       unv_emails = {},
-                      data = {u'default_perms': 0},
+                      data = {u'terms':True, u'default_perms': 0},
                       **kw):
         """There's no real concept of "modify" here. You're updating the
            entire record.
@@ -245,6 +254,8 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             emails.append(unicode(pemail))
         if pemail is None:
             pemail = emails[0]
+        if 'default_perms' not in data:
+            data['default_perms'] = 0;
         try:
             user_record = {u'_id': uid,
                              u'pemail': unicode(pemail),

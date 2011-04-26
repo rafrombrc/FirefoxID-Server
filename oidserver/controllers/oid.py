@@ -14,11 +14,12 @@ class OIDController(BaseController):
 
     def get_user_info(self, request, **params):
         """ Display the appropriate user page or discovery page """
+        user_info = {}
         user = str(request.sync_info['user'])
         params = {'user': user,
                   'host': self.app.config['oid.host'],
-                  'login_host': self.app.config.get('oid.login_host',
-                            'localhost')}
+                  'config': self.app.config,
+                  'request': request }
 
         if 'application/xrds+xml' in request.headers.get('Accept', ''):
             # Display the YADis discovery page
@@ -32,8 +33,7 @@ class OIDController(BaseController):
                 user_id = self.app.auth.backend.get_user_id(user_name)
                 if user_id == uid:
                     # hey that's me !
-                    user_info = self.app.storage.get_user_info(user_id)
-                    print (user_info)
+                    user_info = self.app.storage.get_user_info(user_id) or {}
                     params['user_info'] = user_info
                     params['sig'] = self.gen_signature(uid, request)
                     params['sites'] = \
@@ -42,7 +42,10 @@ class OIDController(BaseController):
             template = get_template('user')
             ct = 'text/html'
         res = template.render(**params)
-        return Response(str(res), content_type=ct)
+        response = Response(str(res), content_type=ct)
+        if not user_info:
+            response.delete_cookie('beaker.session.id')
+        return response
 
     # Entry Point
     def index(self, request, **params):

@@ -37,7 +37,7 @@ some additional optional packages
     python-2.6-dev
     python-2.6-profiler
     redis-server  (v.2.0.4 +)
-    python-redis
+    python-redis (or easy_install redis)
     python-ldap
     python-openid
     gnuplot (for bench reports)

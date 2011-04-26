@@ -161,13 +161,12 @@ class TestApi(unittest.TestCase):
         path = '/1/logged_in'
         self.app.reset()
         self.setUp()
-        """
+        #"""
         # Test not logged in at all.
         # These tests are pending me figuring out how to kill sessions
         # in unit-test beaker.
         self.purge_db()
         params = self.default_params.copy()
-        import pdb; pdb.set_trace()
         response = self.app.post(path,
                                  params = params,
                                  status = 200)
@@ -184,7 +183,8 @@ class TestApi(unittest.TestCase):
                                     extra_environ = self.extra_environ,
                                     status = 200)
         json_obj = json.loads(response.body)
-        self.failIf(json_obj['success'] != True)
+        # Remember, user is logged in to identity, not the remote site.
+        self.failIf(json_obj['success'] != False)
         # """
         #test if the user is logged in, with an active association
         self.purge_db()
@@ -256,8 +256,10 @@ class TestApi(unittest.TestCase):
                             params,
                             status = 200)
         ## This should return the assertion
-        self.failIf('<meta name="page" content="associate" />' not in
+        self.failIf('<meta name="page" content="terms" />' not in
                     response.body)
+        params.update({'terms':'ok'})
+        response = self.app.post(path, params = params, status = 200)
         self.failIf(self.user_info.get('pemail') not in response.body)
 
     def test_heartbeat(self):

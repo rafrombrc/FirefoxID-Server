@@ -14,6 +14,7 @@
   id_learn_url = pageargs.get('auth.id_learn_url', 'default_url')
   request = pageargs.get('request', {'params': {}})
   extra = pageargs.get('extra', {})
+  login_host = config.get('oid.login_host', 'https://localhost')
   audience = request.params.get('audience', '');
   audience_name = urlparse.urlsplit(audience).netloc
   use_default_checked = pageargs.get('use_default_checked', False)
@@ -44,7 +45,7 @@
     <b>${audience_name}</b>
     %endif
     </p>
-    <form id="formlogin" action='${config.get('oid.login_host','https://localhost')}/1/login' method='POST'>
+    <form id="formlogin" action='${login_host}/1/login' method='POST'>
     <p><label for="email">Email</label>
      <input type="text" name="email"></input></p>
     <p><label for="password">Password</label>
@@ -68,7 +69,7 @@
      </div>
      <div class="buttons">
      <button class="cancel" type="cancel">Cancel</input>
-     <button class="submit" type="submit" value="formlogin">Sign in</input>
+     <button class="rsubmit" type="submit" value="formlogin">Sign in</input>
      </div>
      </footer>
     <script src="/s/user.js"></script>

@@ -140,6 +140,8 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         # No primary? Take the first from the list of emails.
         if pemail is None:
             pemail = emails[0]
+        if 'default_perms' not in data:
+            data['default_perms'] = True
         user_record = {u'uid': uid,
                        u'pemail': pemail,
                        u'emails': emails,

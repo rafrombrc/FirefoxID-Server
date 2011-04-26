@@ -60,7 +60,7 @@ class AuthController(BaseController):
             raise HTTPForbidden()
         logged_in = False
         (content_type, template) = self.get_template_from_request(request)
-        uid = self.get_uid(request, strict = False)
+        uid = self.get_uid(request)
         if uid is not None:
             logged_in = True
             """
@@ -143,6 +143,7 @@ class AuthController(BaseController):
         if not self.is_internal(request):
             raise HTTPForbidden()
         (content_type, template) = self.get_template_from_request(request)
+        # Needs non-strict for initial connection
         uid = self.get_uid(request, strict = False)
         site = request.params.get('site_id', None)
         handle = self.app.storage.get_assoc_handle(uid,
@@ -240,7 +241,8 @@ class AuthController(BaseController):
         else:
             # No email picked, present the list
             body = template.render(response = {'user': user},
-                                       request = request)
+                                    config = self.app.config,
+                                    request = request)
         return Response(str(body), content_type = content_type)
 
     def manage_info(self, request, **kw):
@@ -267,6 +269,7 @@ class AuthController(BaseController):
         #boot back to the login page.
         user_info = self.app.storage.get_user_info(uid)
         raise HTTPFound(location = "%s/%s" %
+
                 (self.app.config.get('oid.login_host', 'https://localhost'),
                           quote(user_info['pemail'])))
 
@@ -316,7 +319,10 @@ class AuthController(BaseController):
         """
         response = {}
         error = {}
-        clear_login = False
+        uid = None
+        email = None
+        storage = self.app.storage
+
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
         # User is not logged in or the association is not present.
@@ -325,73 +331,97 @@ class AuthController(BaseController):
             email = request.POST['email']
             password = request.POST['password']
             # Remove the cookie (if present)
-            clear_login = True
             try:
                 username = extract_username(email)
             except UnicodeError:
                 # Log the invalid username for diagnostics ()
                 logger.warn('Invalid username specified: %s (%s) '
                             % (email, username))
-                raise HTTPBadRequest()
+
             # user normalization complete, check to see if we know this
             # person
             uid = self.app.auth.backend.authenticate_user(username,
                                                           password)
-            if uid is not None:
+            if uid is None:
+                error = self.error_codes.get('LOGIN_ERROR')
+                logger.debug('Login failed for %s ' % email)
+                body = template.render(error = error,
+                                       response = response,
+                                       extra = extra,
+                                       request = request,
+                                       config = self.app.config)
+                response  = Response(str(body), content_type = content_type)
+                response.delete_cookie('beaker.session.uid')
+                return response
+            request.environ['beaker.session']['uid'] = uid
 
+            # if this is an email validation, skip to that.
+            if 'validate' in request.params:
+                return self.validate(request)
+        # Attempt to get the uid.
+        if uid is None:
+            uid = self.get_uid(request, strict = False)
+            if uid is None:
+                # Presume that this is the first time in.
+                # Display the login page for HTML only
+                body = template.render(error = error,
+                                        response = response,
+                                        config = self.app.config,
+                                        extra = extra,
+                                        request = request)
+                response = Response(str(body), content_type = content_type)
+                response.delete_cookie('beaker.session.uid')
+                return response
+        # Ok, got a UID, so let's get the user info
+        user = storage.get_user_info(uid)
+        if not email:
+            email = request.params.get('email', None)
+        # confirm terms and create the user
+        if user is None or user.get('data',{}).get('terms',False):
+            if not request.params.get('terms',None):
+                response = self.terms(request, uid, email)
                 request.environ['beaker.session']['uid'] = uid
-                if 'validate' in request.params:
-                    return self.validate(request)
-                # User is valid, record the association
-                storage = self.app.storage
-                clear_login = False
-                if not storage.gen_site_id(request):
-                    # HTTPTemporaryRedirect = 307
-                    # HTTPFound  = 302 // does not pass args.
-                    raise HTTPFound(location = "https:/%s" %
-                                                quote(email))
-                assoc_handle = storage.get_assoc_handle(uid, request)
-                association = storage.get_association(assoc_handle)
-                user = storage.get_user_info(uid)
-                if user is None:
-                    # Record the user
-                    user = storage.create_user(uid, email,
-                                                 emails = [email, ]
-                                                 )
-                if association is None or not association.get('state', True):
-                    if (self.is_type(request, 'html')):
-                        return self.authorize(request)
-                    else:
-                        error = self.error_codes.get('LOGIN_ERROR')
-                else:
-                    # All is well, respond successfully
-                    response = {
+                return response
+            elif email:
+                user = storage.create_user(uid, email,
+                                    emails = [email, ],
+                                    data = {'terms': True}
+                                    )
+        #there is a user, so try to create the association
+        if not storage.gen_site_id(request):
+            # Hmm, no site id, so this is probably a local login
+            # HTTPTemporaryRedirect = 307
+            # HTTPFound  = 302 // does not pass args.
+            raise HTTPFound(location = "https:/%s" % quote(email))
+        assoc_handle = storage.get_assoc_handle(uid, request)
+        association = storage.get_association(assoc_handle)
+        if association is None or not association.get('state', True):
+            if (self.is_type(request, 'html')):
+                return self.authorize(request)
+            else:
+                error = self.error_codes.get('LOGIN_ERROR')
+        else:
+            # All is well, respond successfully
+            response = {
                         'id': association.get('site_id'),
                         'secret': association.get('secret')
                         }
-                    body = template.render(response = response,
-                                            request = request,
-                                            extra = extra,
-                                            config = self.app.config)
-                    return Response(str(body), content_type = content_type)
-            else:
-                # failed
-                logger.debug("Login failed for %s " % email)
-                error = self.error_codes.get('LOGIN_ERROR')
-        else:  # test if uid is present in cookie.
-            uid = self.get_uid(request)
-            if uid is not None:
-                return self.authorize(request)
-        # Display the login page for HTML only
-        body = template.render(error = error,
-                                response = response,
-                                config = self.app.config,
-                                extra = extra,
-                                request = request)
-        resp = Response(str(body), content_type = content_type)
-        if clear_login:
-            resp.delete_cookie('beaker.session.uid')
-        return resp
+        body = template.render(response = response,
+                                        request = request,
+                                        extra = extra,
+                                        config = self.app.config)
+        return Response(str(body), content_type = content_type)
+
+    def terms(self, request, uid, email, **kw):
+        """ Display the terms page.
+        """
+        (content_type, template) = self.get_template_from_request(request,
+                                                    html_template='terms')
+        body = template.render(config = self.app.config,
+                               request = request,
+                               email = email)
+        response = Response(str(body), content_type = content_type)
+        return response;
 
     def logout(self, request, **kw):
         """ Log a user out of the ID server
@@ -520,7 +550,7 @@ class AuthController(BaseController):
             return False
         return assoc_record.get('state', True)
 
-    def gen_identity_assertion(self, request):
+    def gen_identity_assertion(self, request, data=None):
         """return the default email
         """
         (content_type, template) = self.get_template_from_request(request)
@@ -539,6 +569,8 @@ class AuthController(BaseController):
                 'valid-until': valid_until,
                 'email': user.get('email')
             }
+            if data is not None:
+                identity_assertion['data'] = data
             return self.as_json_web_token(identity_assertion)
         return None
 
