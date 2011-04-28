@@ -13,7 +13,7 @@ import types
 class MongoStorage(OIDStorage, OIDStorageBase):
     """ Store data into a Mongo instance """
 
-    def __init__(self, host='127.0.0.1', port=27017, database='id'):
+    def __init__(self, host = '127.0.0.1', port = 27017, database = 'id'):
         """
             note: arguments here must match corresponding values in the .conf
             file or else the process will not start.
@@ -112,7 +112,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                                         multi = False,
                                         safe = True)
             user = self.get_user_info(uid)
-            if handle.lower() not in user.get('assocs',[]):
+            if handle.lower() not in user.get('assocs', []):
                 if 'assocs' not in user:
                     user['assocs'] = [handle]
                 else:
@@ -121,7 +121,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             # return assoc_data
             return self._assoc_db.find_one({'handle': handle,
                                             'email': email})
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             logger.error("Can't store association %s for %s [%s]" %
                          (handle, uid, str(ofe)))
             raise OIDStorageException("Could not generate association")
@@ -133,7 +133,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             self._assoc_db.update({u'handle': handle.lower()},
                                   {'$set': {u'state': state}})
             return True
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             logger.error("Could not set the assoc state for %s: %s [%s]",
                          (handle.lower(), state, str(ofe)))
             raise OIDStorageException("Could not store state")
@@ -147,7 +147,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             return None
         try:
             assoc = self._assoc_db.find_one({u'handle': handle.lower()})
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             raise OIDStorageException(
                 "Could not find association with handle %s [%s]" %
                 (handle.lower(), str(ofe)))
@@ -158,7 +158,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         try:
             assoc = self._assoc_db.find_one({u'email': email,
                                         u'site_id': self.gen_site_id(request)})
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             raise OIDStorageException(
                 "Could not find association from email %s [%s]" %
                 (email, str(ofe)))
@@ -178,7 +178,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             associations = self._assoc_db.find(searchObj)
             for assoc in associations:
                 results.append(assoc)
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             raise OIDStorageException("Cound not find associations [%s]",
                                         str(ofe))
         return results
@@ -192,7 +192,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             del_obj[u'email'] = email
         try:
             self._assoc_db.remove(del_obj, safe = True)
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             raise OIDStorageException("Could not remove record %s [%s]" %
                                       (handle.lower(), str(ofe)))
         return True
@@ -223,7 +223,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         result = []
         try:
             associations = self._assoc_db.find({u'uid': uid})
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             raise OIDStorageException(
                 "Could not find associations for %s [%s]" % (uid, str(ofe)))
         for assoc in associations:
@@ -234,7 +234,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
     def get_user_info(self, uid):
         try:
             return self._user_db.find_one({u'_id': uid})
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             raise OIDStorageException(
                 "Could not find association for %s [%s]" % (uid, str(ofe)))
 
@@ -243,7 +243,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                       fname = "",
                       emails = [],
                       unv_emails = {},
-                      data = {u'terms':True, u'default_perms': 0},
+                      data = {u'terms': True, u'default_perms': 0},
                       **kw):
         """There's no real concept of "modify" here. You're updating the
            entire record.
@@ -255,7 +255,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         if pemail is None:
             pemail = emails[0]
         if 'default_perms' not in data:
-            data['default_perms'] = 0;
+            data['default_perms'] = 0
         try:
             user_record = {u'_id': uid,
                              u'pemail': unicode(pemail),
@@ -267,7 +267,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                              }
             self._user_db.save(user_record, safe = True)
             return user_record
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             logger.error("Could not set user info for %s [%s]" %
                             (uid, str(ofe)))
             raise OIDStorageException("Could not store user record")
@@ -281,7 +281,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                 record[key].update(user[key])
                 continue
             if key != "_id":
-                record[key]=user.get(key)
+                record[key] = user.get(key)
         self._user_db.save(record, safe = True)
         return record
 
@@ -302,7 +302,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
 
     # email validation db calls.
     def add_validation(self, uid, email):
-        rtoken =  ''.join([randchar() for i in range(26)])
+        rtoken = ''.join([randchar() for i in range(26)])
         validation_record = {u'_id': rtoken,
                              u'uid': uid,
                              u'created': datetime.now(),
@@ -312,12 +312,12 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             self._validate_db.save(validation_record, safe = True)
             user = self._user_db.find_one({u'_id': uid})
             if 'unv_emails' not in user:
-                user['unv_emails']= {}
+                user['unv_emails'] = {}
             user['unv_emails'][email] = {'created': int(time.time()),
                                  'conf_code': rtoken}
             self._user_db.save(user, safe = True)
-            return rtoken;
-        except OperationFailure as ofe:
+            return rtoken
+        except OperationFailure, ofe:
             logger.error("Could not store validation record for %s [%s]" %
                          (uid, str(ofe)))
             raise OIDStorageException("Could not store validation token")
@@ -330,11 +330,11 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         user = self._user_db.find_one({u'_id': uid})
         if email in user['unv_emails']:
             rtoken = user['unv_emails'][email]['conf_code']
-            del user['unv_emails'][email];
+            del user['unv_emails'][email]
             self._user_db.save(user, safe = True)
             try:
                 self._validate_db.remove(rtoken)
-            except OperationFailure as ofe:
+            except OperationFailure:
                 logger.error("Could not remove unvalidated record %s:%s [%s]" %
                              (uid, email, str))
                 return False
@@ -353,7 +353,7 @@ class MongoStorage(OIDStorage, OIDStorageBase):
                     self._validate_db.remove({u'_id': token}, safe = True)
                     self._user_db.save(user, safe = True)
                 return email
-        except (OperationFailure, KeyError) as ofe:
+        except (OperationFailure, KeyError), ofe:
             logger.error("Could not validate token %s [%s]",
                          token, str(ofe))
             raise OIDStorageException("Could not validate token")
@@ -366,10 +366,10 @@ class MongoStorage(OIDStorage, OIDStorageBase):
             expry = datetime.timedelta(config.get('auth.validation_expry_days',
                                                   14))
             self._validate_db.ensureIndex({'created': 1})
-            self._validate_db.remove({'created:':{'$lte':expry}})
+            self._validate_db.remove({'created': {'$lte': expry}})
             return True
-        except OperationFailure as ofe:
+        except OperationFailure, ofe:
             logger.error("Could not purge old validation records [%s]",
                          str(ofe))
             raise OIDStorageException("Could not purge old validation recs")
-        return False;
+        return False

@@ -70,17 +70,8 @@ If you are using nginx as your server platform:
         The packaged nginx configuration files are a bit different under 
         Ubuntu (10.04). You will need to either modify the 
         /etc/nginx/nginx.conf file or the individual nginx configuration
-        files.
+        files, or use the included conf/nginx/nginx.conf.UBUNTU file.
 
-        Option 1:
-        Edit /etc/nginx/nginx.conf
-        This is recommended if you have not installed other nginx configurations.
-
-        nginx.conf:
-        #===
-        http {
-            ...
-            
 
 This should bring up a server.
 

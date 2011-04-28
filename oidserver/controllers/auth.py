@@ -1,6 +1,5 @@
-from cgi import escape
 from hashlib import  sha256
-from oidserver import logger
+from oidserver import logger, VERSION
 from oidserver.controllers import BaseController
 from oidserver.storage import OIDStorageException
 from oidserver.util import (get_template, text_to_html_filter, url_filter)
@@ -146,6 +145,8 @@ class AuthController(BaseController):
         # Needs non-strict for initial connection
         uid = self.get_uid(request, strict = False)
         site = request.params.get('site_id', None)
+        if site:
+            site = unquote(site)
         handle = self.app.storage.get_assoc_handle(uid,
                                                    request,
                                                    site_loc = site)
@@ -251,7 +252,7 @@ class AuthController(BaseController):
         if uid is None:
             return HTTPBadRequest()
         # pull out the special args.
-        new_user_info = {'data':{}}
+        new_user_info = {'data': {}}
         params = request.params.copy()
         # strict control over what we're going to accept here.
         # process straight text type fields
@@ -262,7 +263,7 @@ class AuthController(BaseController):
         # process URLs
         for field in ['data.avatar']:
             if field in params:
-                new_user_info['data'][field[5:]] = \
+                new_user_info['data'][field[5: ]] = \
                     url_filter(params.get(field))
         # additional params go into the "additional" user info section
         self.app.storage.update_user(uid, new_user_info)
@@ -279,38 +280,37 @@ class AuthController(BaseController):
         uid = self.get_uid(request, strict = False)
         if not uid:
             return HTTPBadRequest()
-        if request.params.get('unv', None):
-            if (request.params.get('act', None)):
-                email = request.params.get('unv')
-                if '@' not in email:
-                    email = unquote(email)
-                action = request.params.get('act').lower()
-                user = self.app.storage.get_user_info(uid)
-                if action == 'add':
-                    if self.send_validate_email(uid, email):
-                        body = template.render(request = request,
-                                               config = self.app.config,
-                                               user = user,
-                                               email = email)
-                        return Response(str(body),
-                                        content_type = content_type)
-                elif action == 'del':
-                    if not self.app.storage.remove_unvalidated(uid, email):
-                        body = template.render(request = request,
-                                        config = self.app.config,
-                                        email = email,
-                                        user = user,
-                                        error = self.error_codes('INVALID'))
-                    else:
-                        body = template.render(request = request,
-                                        config = self.app.config,
-                                        user = user,
-                                        email = email)
-                    return Response(str(body), content_type = content_type)
-                return HTTPBadRequest()
+        if 'unv' in request.params and 'act' in request.params:
+            email = request.params.get('unv')
+            if '@' not in email:
+                email = unquote(email)
+            action = request.params.get('act').lower()
+            user = self.app.storage.get_user_info(uid)
+            if action == 'add':
+                if self.send_validate_email(uid, email):
+                    body = template.render(request = request,
+                                           config = self.app.config,
+                                           user = user,
+                                           email = email)
+                    return Response(str(body),
+                                    content_type = content_type)
+            elif action == 'del':
+                if not self.app.storage.remove_unvalidated(uid, email):
+                    body = template.render(request = request,
+                                    config = self.app.config,
+                                    email = email,
+                                    user = user,
+                                    error = self.error_codes('INVALID'))
+                else:
+                    body = template.render(request = request,
+                                    config = self.app.config,
+                                    user = user,
+                                    email = email)
+                return Response(str(body), content_type = content_type)
+            return HTTPBadRequest()
         user_info = self.app.storage.get_user_info(uid)
         raise HTTPFound(location = "https:/%s/%s" %
-                (self.app.config.get('oid.login_host','https://localhost'),
+                (self.app.config.get('oid.login_host', 'https://localhost'),
                          quote(user_info.get('pemail'))))
 
     ## public
@@ -330,14 +330,13 @@ class AuthController(BaseController):
             len(request.POST.get('password', ''))):
             email = request.POST['email']
             password = request.POST['password']
-            # Remove the cookie (if present)
             try:
                 username = extract_username(email)
             except UnicodeError:
                 # Log the invalid username for diagnostics ()
                 logger.warn('Invalid username specified: %s (%s) '
                             % (email, username))
-
+                raise HTTPBadRequest()
             # user normalization complete, check to see if we know this
             # person
             uid = self.app.auth.backend.authenticate_user(username,
@@ -350,7 +349,7 @@ class AuthController(BaseController):
                                        extra = extra,
                                        request = request,
                                        config = self.app.config)
-                response  = Response(str(body), content_type = content_type)
+                response = Response(str(body), content_type = content_type)
                 response.delete_cookie('beaker.session.uid')
                 return response
             request.environ['beaker.session']['uid'] = uid
@@ -377,8 +376,8 @@ class AuthController(BaseController):
         if not email:
             email = request.params.get('email', None)
         # confirm terms and create the user
-        if user is None or user.get('data',{}).get('terms',False):
-            if not request.params.get('terms',None):
+        if user is None or not user.get('data', {}).get('terms', False):
+            if not request.params.get('terms', None):
                 response = self.terms(request, uid, email)
                 request.environ['beaker.session']['uid'] = uid
                 return response
@@ -421,7 +420,7 @@ class AuthController(BaseController):
                                request = request,
                                email = email)
         response = Response(str(body), content_type = content_type)
-        return response;
+        return response
 
     def logout(self, request, **kw):
         """ Log a user out of the ID server
@@ -527,7 +526,7 @@ class AuthController(BaseController):
         template = get_template('validate_email_body')
         verify_url = (self.app.config.get('oid.validate_host',
                                          'http://localhost') +
-                                        '/1/validate/' + rtoken )
+                                        '/%s/validate/%s' % (VERSION, rtoken))
         body = template.render(from_addr =
                                 self.app.config.get('oid.from_address',
                                                     reply_to),

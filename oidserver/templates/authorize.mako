@@ -2,6 +2,7 @@
 <html>
  <head>
 <%
+ from oidserver import VERSION
  import urlparse
  import urllib
 
@@ -48,7 +49,7 @@
      <div class="error">${error}</div>
     %endif
     <p>How would you like to identify yourself to <b>${audience}</b></p>
-    <form action='/1/authorize' id="formauth" method='POST'>
+    <form action='${default_url}/${VERSION}/authorize' id="formauth" method='POST'>
     % for email in emails:
      <p><input class="radio" id="email_${icnt}" type="radio" name="temail" value="${email}"
      % if email == default:

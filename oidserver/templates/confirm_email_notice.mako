@@ -1,4 +1,5 @@
 <%
+    from oidserver import VERSION
 
     config = pageargs.get('config',{})
     user = pageargs.get('user',{})
@@ -6,7 +7,7 @@
     email = pageargs.get('email','')
     admin_url = (config.get('oid.login_host','https://localhost')  +
                     '/' +
-                    user.get('pemail','1/login'))
+                    user.get('pemail',VERSION + '/login'))
 
 %><!DOCTYPE HTML>
 <html>

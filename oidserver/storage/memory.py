@@ -219,7 +219,7 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                     del self._validate_db[token]
                 self._user_db[uid] = user
                 return True
-        except (KeyError) as ofe:
+        except (KeyError), ofe:
             logger.error("Could not validate token %s [%s]",
                          token, str(ofe))
             raise OIDStorageException("Could not validate token")

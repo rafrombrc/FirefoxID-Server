@@ -1,6 +1,7 @@
 <html>
  <head>
 <%
+ from oidserver import VERSION
  import urlparse
  import urllib
 
@@ -30,7 +31,7 @@
   <p>{Terms of use go here}<p>
   </main>
   <footer>
-    <form action='${login_host}/1/login' method='POST'>
+    <form action='${login_host}/${VERSION}/login' method='POST'>
      <div class="footer">
      <div class="buttons">
      <button class="go_back" disabled>Go Back</button>

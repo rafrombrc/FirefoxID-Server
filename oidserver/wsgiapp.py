@@ -37,6 +37,7 @@
 Application entry point.
 """
 from beaker.middleware import SessionMiddleware
+from oidserver import VERSION
 from oidserver.auth import OIDAuthentication
 from oidserver.controllers.auth import AuthController
 from oidserver.controllers.oid import OIDController
@@ -45,32 +46,44 @@ from services.baseapp import set_app, SyncServerApp
 
 
 urls = [
-        #('GET', '/__debug__', 'svc', 'debug'),
-        #('GET', '/__heartbeat__', 'svc', 'heartbeat'),
+
         ## private
         # Is the user Logged In?
-        ('POST', '/1/logged_in', 'auth', 'logged_in'),
+        ('POST', '/%s/logged_in' % VERSION,
+                'auth', 'logged_in'),
         # get the default email for this user
-        ('POST', '/1/get_default_email', 'auth', 'get_default_email'),
+        ('POST', '/%s/get_default_email' % VERSION,
+                'auth', 'get_default_email'),
         # get a list of emails for the given user (first is "default")
-        ('POST', '/1/get_emails', 'auth', 'get_emails'),
+        ('POST', '/%s/get_emails' % VERSION,
+                'auth', 'get_emails'),
         # remove the default email for this user
-        ('POST', '/1/remove_association', 'auth', 'remove_association'),
+        ('POST', '/%s/remove_association' % VERSION,
+                'auth', 'remove_association'),
         # get the identity assertion document.
-        ('POST', '/1/get_identity_assertion', 'auth',
-                'get_identity_assertion'),
-        ('POST', '/1/authorize', 'auth', 'authorize'),
-        ('POST', '/1/manage_info', 'auth', 'manage_info'),
-        ('POST', '/1/manage_email', 'auth', 'manage_email'),
+        ('POST', '/%s/get_identity_assertion' % VERSION,
+                'auth', 'get_identity_assertion'),
+        ('POST', '/%s/authorize' % VERSION,
+                'auth', 'authorize'),
+        ('POST', '/%s/manage_info' % VERSION,
+                'auth', 'manage_info'),
+        ('POST', '/%s/manage_email' % VERSION,
+                'auth', 'manage_email'),
         # You're logged in, now authorize the email address
-        ('GET', '/1/validate/{validate:[\w]+}', 'auth', 'validate'),
+        ('GET', '/%s/validate/{validate:[\w]+}' % VERSION,
+                'auth', 'validate'),
+
         ## public
         # verify that the identity assertion is valid.
-        (('GET', 'POST'), '/1/login', 'auth', 'login'),
+        (('GET', 'POST'), '/%s/login' % VERSION,
+                'auth', 'login'),
         # Log the user out of the system
-        (('POST'), '/1/logout', 'auth', 'logout'),
-        (('POST'), '/1/verify', 'auth', 'verify'),
-        ('GET', '/{user:[@\w\.\-\+]+}', 'oid', 'get_user_info'),
+        (('POST'), '/%s/logout' % VERSION,
+                'auth', 'logout'),
+        (('POST'), '/%s/verify' % VERSION,
+                'auth', 'verify'),
+        ('GET', '/{user:[@\w\.\-\+]+}',
+                'oid', 'get_user_info'),
         ]
 
 controllers = {'oid': OIDController,
@@ -82,25 +95,15 @@ class OIDApp(SyncServerApp):
     def __init__(self, urls, controllers, config, auth_class):
         """ Main storage """
         self.storage = get_storage(config, 'oidstorage')
-        """ session cookie to uid (future)
-                cookie should be "%id_hash+%rand(2**256)"
-                * cookie valid for one login until the end of that session.
-                * cookie is nuked at 'log out' or on expiration
-                * New cookie on new session.
-                * user has different cookies per machine or access.
-        """
-        #self.cookies = get_storage(config,'cookies')
         super(OIDApp, self).__init__(urls, controllers, config, auth_class)
         self.debug_page = '__debug__'
 
 
 def _wrap(app):
-    options = {'session.type': 'file',
-               'session.data_dir': '/tmp/cache/data',
-               'session.cookie_expires': 300,
-               'session.secure': True,
-               'session.auto': True}
-    return SessionMiddleware(app, options)
+    # Beaker session config are defined in production.ini[default].
+    # Pull the config settings from app.app.application.config.
+    # Defining custom config here summons dragons.
+    return SessionMiddleware(app, config = app.app.application.config)
 
 
 make_app = set_app(urls, controllers, klass=OIDApp, wrapper=_wrap,

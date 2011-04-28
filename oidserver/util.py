@@ -253,6 +253,7 @@ def create_association(storage, expires_in=3600, **params):
     session_type = params['openid.session_type']
     # creating association info
     secret, assoc_handle = create_handle(assoc_type)
+
     res = {'ns': 'http://specs.openid.net/auth/2.0',
            'assoc_handle': assoc_handle,
            'session_type': session_type,
@@ -283,6 +284,7 @@ def create_association(storage, expires_in=3600, **params):
     res = ['%s:%s' % (key, value) for key, value in res.items()]
     return '\n'.join(res)
 
+
 # The following filters are not guaranteed safe, but should trap most
 # unsafe behaviors.
 # Exceptionally paranoid string to HTML.
@@ -291,10 +293,11 @@ def text_to_html_filter(unsafe_string):
     out = []
     for letter in unsafe_string:
         if letter.lower() in safe_str:
-           out.append(letter)
+            out.append(letter)
         else:
-            out.append('&#x' + hex(ord(letter)) + ';')
+            out.append('&#%02d;' % ord(letter))
     return ''.join(out)
+
 
 # only accept urls begining with 'http' (to prevent inline script attacks)
 def url_filter(unsafe_url):

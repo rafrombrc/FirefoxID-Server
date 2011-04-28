@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from oidserver import VERSION
 from oidserver.tests import FakeAuthTool, FakeRequest
 from oidserver.wsgiapp import make_app
 from webtest import TestApp
@@ -28,6 +29,7 @@ class TestApi(unittest.TestCase):
                  'pemail': 'good@example.com',
                  'emails': ['good@example.com',
                             'test@example.org']}
+
 
     ## beaker is being stupid and overwriting session information
     beaker_is_being_stupid = True
@@ -89,7 +91,7 @@ class TestApi(unittest.TestCase):
                 app.storage.set_association(self.user_info.get('uid'),
                                     request,
                                     email = self.user_info.get('pemail'))
-                self.app.post('/1/login',
+                self.app.post('/%s/login' % VERSION,
                                  params = params)
 
     def purge_db(self):
@@ -103,7 +105,7 @@ class TestApi(unittest.TestCase):
     def test_get_default_email(self):
         """ get the default email for this user """
         self.setUp()
-        path = '/1/get_default_email'
+        path = '/%s/get_default_email' % VERSION
         params = self.default_params.copy()
         response = self.app.post(path,
                                  params = params,
@@ -118,7 +120,7 @@ class TestApi(unittest.TestCase):
     def test_get_emails(self):
         """ get list of valid emails for this user """
         self.setUp()
-        path = '/1/get_emails'
+        path = '/%s/get_emails' % VERSION
         response = self.app.post(path,
                                  params = self.default_params,
                                  status = 200)
@@ -135,7 +137,7 @@ class TestApi(unittest.TestCase):
     def test_get_identity_assertion(self):
         """ Get an identity assertion document for this user/site """
         self.setUp()
-        path = '/1/get_identity_assertion'
+        path = '/%s/get_identity_assertion' % VERSION
         response = self.app.post(path,
                                  params = self.default_params,
                                  status = 200)
@@ -147,7 +149,7 @@ class TestApi(unittest.TestCase):
 
         params = self.default_params.copy()
         params.update({'iar': resp_obj.get('iar')})
-        path = '/1/verify'
+        path = '/%s/verify' % VERSION
         response = self.app.post(path,
                       params = params,
                       status = 200)
@@ -158,7 +160,7 @@ class TestApi(unittest.TestCase):
 
     def test_logged_in(self):
         """ check if the user is logged in to a given associated site """
-        path = '/1/logged_in'
+        path = '/%s/logged_in' % VERSION
         self.app.reset()
         self.setUp()
         #"""
@@ -207,7 +209,7 @@ class TestApi(unittest.TestCase):
 
     def test_logout(self):
         self.setUp()
-        path = "/1/logout"
+        path = "/%s/logout" % VERSION
         request = FakeRequest()
         request.remote_addr = "127.0.0.1"
         signature = self.app.app.wrap_app.app.\
@@ -230,7 +232,7 @@ class TestApi(unittest.TestCase):
         self.setUp()
         params = self.default_params.copy()
         params.update({})
-        path = '/1/remove_association'
+        path = '/%s/remove_association' % VERSION
         self.app.post(path, params = params, status = 200)
         self.purge_db()
 
@@ -238,7 +240,7 @@ class TestApi(unittest.TestCase):
         self.setUp()
         params = self.default_params.copy()
         params.update(self.bad_credentials)
-        path = '/1/login'
+        path = '/%s/login' % VERSION
         response = self.app.post(path, params = params)
         resp_obj = json.loads(response.body)
         self.check_default(resp_obj, path)
@@ -251,7 +253,7 @@ class TestApi(unittest.TestCase):
         params = self.default_params.copy()
         params.update(self.good_credentials)
         params.update({'output': 'html'})
-        path = '/1/login'
+        path = '/%s/login' % VERSION
         response = self.app.post(path,
                             params,
                             status = 200)
@@ -279,7 +281,7 @@ class TestApi(unittest.TestCase):
                      'data.avatar': "http://example.org/icon.jpg"}
 
         params.update(test_info)
-        path = '/1/manage_info'
+        path = '/%s/manage_info' % VERSION
         self.app.post(path,
                       params = params,
                       extra_environ = self.extra_environ,
@@ -308,7 +310,7 @@ class TestApi(unittest.TestCase):
         test_info = {'unv': 'supplemental@example.org', 'act': 'add'}
 
         params.update(test_info)
-        path = '/1/manage_email'
+        path = '/%s/manage_email' % VERSION
         response = self.app.post(path,
                       params = params,
                       extra_environ = self.extra_environ,
@@ -320,7 +322,7 @@ class TestApi(unittest.TestCase):
             user.get('unv_emails').get(test_info['unv']).get('conf_code')
 
         params = self.default_params.copy()
-        path = '/1/validate/' + conf_code
+        path = ('/%s/validate/' % VERSION) + conf_code
         response = self.app.get(path,
                                  params = params,
                                  extra_environ = self.extra_environ,

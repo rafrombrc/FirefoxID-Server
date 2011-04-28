@@ -1,13 +1,17 @@
 <%
 
+  from oidserver.util import (text_to_html_filter, url_filter)
+  from oidserver import VERSION
+
   host = pageargs.get('host', 'localhost')
   login_host = config.get('oid.login_host', 'https://localhost')
   user = pageargs.get('user', 'unknown')
   user_info = pageargs.get('user_info',{})
   sites = pageargs.get('sites', [])
   sig = pageargs.get('sig', '')
-  user_avatar = user_info.get('data',{}).get('avatar','')
-  user_name = user_info.get('name','')
+  user_avatar = url_filter(user_info.get('data',{}).get('avatar',''))
+  user_name = text_to_html_filter(user_info.get('name',''))
+
   if not avatar:
    user_avatar = ''
   if not user_name:
@@ -53,7 +57,7 @@
     <p>Please note: The following information should be considered public and
     may be shared with the sites you connect to. It is optional and provided
     here for convienence.</p>
-    <form action="${login_host}/1/manage_info" method="POST">
+    <form action="${login_host}/${VERSION}/manage_info" method="POST">
     <p><input name="name" value="${user_name}" placeholder="Name" /></p>
     <p><input name="avatar" value="${user_avatar}" placeholder="Avatar URL" /></p>
     <p><button class="submit" type="submit">Update Info</button></p>
@@ -70,7 +74,7 @@
     % endfor
     </ul>
     %endif
-    <form action="${login_host}/1/manage_email" method="POST">
+    <form action="${login_host}/${VERSION}/manage_email" method="POST">
     <p><input name="unv" value="" placeholder="Additional Email"/>
     <button class="submit" type="submit" name="act" value="add">Add Email</button></p>
     </form>
@@ -107,7 +111,7 @@
 %if user_info:
 <button class="logout" id="logout">Logout</button>
 %else:
-<a href="${login_host}/1/login" class="fakebutton">Login</a>
+<a href="${login_host}/${VERSION}/login" class="fakebutton">Login</a>
 %endif
 </div>
 </footer>

@@ -1,6 +1,7 @@
 <html>
  <head>
 <%
+  from oidserver import VERSION
   import urlparse
 
   # pre-define variables so that mako doesn't puke and die.
@@ -45,7 +46,7 @@
     <b>${audience_name}</b>
     %endif
     </p>
-    <form id="formlogin" action='${login_host}/1/login' method='POST'>
+    <form id="formlogin" action='${login_host}/${VERSION}/login' method='POST'>
     <p><label for="email">Email</label>
      <input type="text" name="email"></input></p>
     <p><label for="password">Password</label>
