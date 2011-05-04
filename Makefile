@@ -83,4 +83,4 @@ sa_fixnginx:
 
 # Run an instance of the Stand Alone server.
 runsa:
-	bin/gunicorn -w1 oidserver.run -t --log-file - --log-level info
+	bin/gunicorn -w1 oidserver.run -t 300 --log-file - --log-level info
