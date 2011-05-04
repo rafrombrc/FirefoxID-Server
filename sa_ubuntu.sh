@@ -16,7 +16,7 @@ mkdir -p /var/www
 ln -s /var/www/sample sample
 ln -s var/www/s static
 echo "#### Copying nginx config files."
-cp /etc/nginx/nginx.conf.backup-`date +'%Y%m%d'`
+cp /etc/nginx/nginx.conf{,.backup-`date +'%Y%m%d'`}
 cp conf/nginx/nginx.conf.UBUNTU /etc/nginx/nginx.conf
 cp conf/nginx/conf.d/* /etc/nginx/conf.d/*
 ln -s /etc/nginx/conf.d /etc/nginx/conf.d/ssl

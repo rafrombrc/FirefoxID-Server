@@ -50,7 +50,8 @@ class TestApi(unittest.TestCase):
              'oid.mail_host': 'localhost',
              'oid.from_address': 'test@example.org',
              'oid.reply_to': 'no-reply@example.net',
-             'test.nomail': True
+             'test.nomail': True,
+             'global.debug_page': '__debug__'
             }
         self.app = TestApp(make_app(config))
         self.app.reset()

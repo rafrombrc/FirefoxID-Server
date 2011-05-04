@@ -92,19 +92,20 @@ controllers = {'oid': OIDController,
 
 class OIDApp(SyncServerApp):
     """OID application"""
+
     def __init__(self, urls, controllers, config, auth_class):
         """ Main storage """
         self.storage = get_storage(config, 'oidstorage')
         super(OIDApp, self).__init__(urls, controllers, config, auth_class)
-        self.debug_page = '__debug__'
+        # __heartbeat__ is provided via the SyncServerApp base class
+        # __debug__ is provided via global.debug_page in config.
 
 
-def _wrap(app):
+def _wrap(app, config = {}, **kw):
     # Beaker session config are defined in production.ini[default].
-    # Pull the config settings from app.app.application.config.
+    # Pull the config settings from oidApp.config.
     # Defining custom config here summons dragons.
-    return SessionMiddleware(app, config = app.app.application.config)
-
+    return SessionMiddleware(app, config = config)
 
 make_app = set_app(urls, controllers, klass=OIDApp, wrapper=_wrap,
                    auth_class=OIDAuthentication)

@@ -11,6 +11,7 @@ PYLINT = bin/pylint
 PKGS = oidserver
 BENCH = bin/fl-run-bench
 REPORT = bin/fl-build-report
+INSTALL = sudo apt-get install
 
 .PHONY: all build test hudson lint
 
@@ -22,7 +23,7 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) Funkload==1.14        #Currently locked due to a dependency issue in Funkload.
+	$(EZ) -i http://pypi.appspot.com  Funkload==1.14 #Currently locked due to a dependency issue in Funkload.
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
@@ -60,3 +61,26 @@ bench:
 
 bench_report:
 	$(REPORT) --html -o html loadtests/stress-bench.xml
+
+# Pre requirements for stand alone server
+# (Optional)
+sa_preflight:
+	$(INSTALL) python-2.6
+	$(INSTALL) python-virtualenv
+	$(INSTALL) libsasl2-dev
+	$(INSTALL) libssl-dev
+	$(INSTALL) python-cxx-dev
+	$(INSTALL) libldap2-devi
+	$(INSTALL) nginx
+
+# Configure UBUNTU style nginx to point to our config files.
+sa_fixnginx:
+	cp /etc/nginx/nginx.conf{,.backup-`date +r'%Y%m%d'`}
+	cp conf/nginx/nginx.conf.UBUNTU /etc/nginx/nginx.conf
+	cp conf/nginx/conf.d/* /etc/nginx/conf.d/*
+#	Some versions of nginx won't allow ssl and non ssl to live in the same dir
+	ln -s /etc/nginx/conf.d /etc/nginx/conf.d/ssl
+
+# Run an instance of the Stand Alone server.
+runsa:
+	bin/gunicorn -w1 oidserver.run -t --log-file - --log-level info

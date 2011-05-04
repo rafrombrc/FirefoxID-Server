@@ -52,6 +52,7 @@
     </table>
     </div>
      %endif
+<%doc>
     <div id="user">
     <h2>Your information</h2>
     <p>Please note: The following information should be considered public and
@@ -63,6 +64,7 @@
     <p><button class="submit" type="submit">Update Info</button></p>
     </form>
     </div>
+</%doc>
     <div id="emails">
     <h2>Additional Emails</h2>
     % if user_info.get('emails',False):

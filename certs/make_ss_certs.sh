@@ -1,4 +1,4 @@
-! /bin/bash
+#! /bin/bash
 name=ss_identity
 echo ####
 echo Generating $name.key 
