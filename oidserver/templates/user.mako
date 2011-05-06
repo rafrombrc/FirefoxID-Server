@@ -69,12 +69,15 @@
     <h2>Additional Emails</h2>
     % if user_info.get('emails',False):
     <ul>
-    % for email in user_info.get('emails'):
-    % if email != user_info.get('pemail'):
+     % for email in user_info.get('emails'):
+      % if email != user_info.get('pemail'):
     <li>${email}</li>
-    % endif
-    % endfor
+      % endif
+     % endfor
     </ul>
+    %else:
+     <p> You must verify at least one email address before you can log into
+     sites.</p>
     %endif
     <form action="${login_host}/${VERSION}/manage_email" method="POST">
     <p><input name="unv" value="" placeholder="Additional Email"/>

@@ -134,9 +134,6 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         # Must supply either pemail or emails
         if len(emails) == 0 and pemail is None:
             raise OIDStorageException("Must supply at least one email")
-        # No list of emails? Append the primary.
-        if len(emails) == 0:
-            emails.append(pemail)
         # No primary? Take the first from the list of emails.
         if pemail is None:
             pemail = emails[0]

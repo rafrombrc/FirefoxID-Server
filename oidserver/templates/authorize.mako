@@ -14,12 +14,12 @@
  request = pageargs.get('request',{'params': {}})
 
  audience = request.params.get('audience','')
- user = pageargs.get('response', {}).get('user', None)
+ user = pageargs.get('response', {}).get('user', {})
  emails = []
  default = ''
- if user is not None:
+ if user:
   emails = user.get('emails', [''])
-  default = user.get('pemail', emails[0])
+  default = user.get('pemail', '')
  default_url = config.get('oid.login_host', 'https://localhost')
 
  use_default_checked = pageargs.get('use_default_checked', False)
@@ -48,6 +48,7 @@
     %if len(error) > 0:
      <div class="error">${error}</div>
     %endif
+    %if emails:
     <p>How would you like to identify yourself to <b>${audience}</b></p>
     <form action='${default_url}/${VERSION}/authorize' id="formauth" method='POST'>
     % for email in emails:
@@ -59,8 +60,22 @@
      <label for="email_${icnt}">${email}</label></p>
      <% icnt = icnt + 1 %>
     % endfor
+    </form>
+    %else:
+<%
+  pemail = user.get('pemail','')
+%>
+    <p>You have not yet verified an email. Please select an email to verify:</p>
+    <form action='${default_url}/${VERSION}/manage_email' id="formauth" method="POST">
+     %if pemail:
+     <p><input class="radio" id="vemail_pe" type="radio" name="unv" value="${pemail}"><label for="vemail">${pemail}</label></p>
+     %endif
+     <p><input class="radio" id="vemail_o" type="radio" name="unv" placeholder="Other email">
+     <input type="text" name="unv" placeholder="Other email"></p>
+     <input type="hidden" name="act" value="add">
      <input type="hidden" name="audience" value="${audience}" />
     </form>
+    %endif
  </main>
  <footer>
      <div class="register">

@@ -42,6 +42,6 @@
      <input type="hidden" name="email" value="${email}" />
     </form>
     </footer>
-    <script src="user.js"></script>
+    <script src="/s/user.js"></script>
  </body>
 </html>

@@ -70,6 +70,7 @@ class AuthController(BaseController):
                     logged_in = association.get('state', True)
             except OIDStorageException:
                 pass
+
             #"""
         if logged_in:
             body = template.render(response = {'success': True,
@@ -323,6 +324,13 @@ class AuthController(BaseController):
         email = None
         storage = self.app.storage
 
+        def dump(str, **kw):
+            print str
+        logger.debug = dump
+        logger.info = dump
+
+
+        logger.debug('in login:')
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
         # User is not logged in or the association is not present.
@@ -339,6 +347,7 @@ class AuthController(BaseController):
                 raise HTTPBadRequest()
             # user normalization complete, check to see if we know this
             # person
+            import pdb; pdb.set_trace()
             uid = self.app.auth.backend.authenticate_user(username,
                                                           password)
             if uid is None:
@@ -350,8 +359,14 @@ class AuthController(BaseController):
                                        request = request,
                                        config = self.app.config)
                 response = Response(str(body), content_type = content_type)
+                logger.debug('Nuking session cookie')
                 response.delete_cookie('beaker.session.uid')
+                try:
+                    del request.environ['beaker.session']['uid']
+                except KeyError:
+                    pass
                 return response
+            logger.debug('setting uid to %s' % uid)
             request.environ['beaker.session']['uid'] = uid
 
             # if this is an email validation, skip to that.
@@ -359,8 +374,11 @@ class AuthController(BaseController):
                 return self.validate(request)
         # Attempt to get the uid.
         if uid is None:
+            logger.debug('attempting to get uid')
+            import pdb; pdb.set_trace()
             uid = self.get_uid(request, strict = False)
             if uid is None:
+                logger.debug('no uid present')
                 # Presume that this is the first time in.
                 # Display the login page for HTML only
                 body = template.render(error = error,
@@ -377,20 +395,29 @@ class AuthController(BaseController):
             email = request.params.get('email', None)
         # confirm terms and create the user
         if user is None or not user.get('data', {}).get('terms', False):
+            logger.debug('Sending terms %s ' % user)
             if not request.params.get('terms', None):
                 response = self.terms(request, uid, email)
-                request.environ['beaker.session']['uid'] = uid
+                try:
+                    request.environ['beaker.session']['uid'] = uid
+                except KeyError:
+                    pass
                 return response
             elif email:
+                logger.debug('creating new user %s ' % email)
                 user = storage.create_user(uid, email,
-                                    emails = [email, ],
                                     data = {'terms': True}
                                     )
+                # Send a validation email (and add the primary email
+                # to the list of unvalidated emails)
+                logger.debug('validating email address %s ' % email)
+                self.send_validate_email(uid,email)
         #there is a user, so try to create the association
         if not storage.gen_site_id(request):
             # Hmm, no site id, so this is probably a local login
             # HTTPTemporaryRedirect = 307
             # HTTPFound  = 302 // does not pass args.
+            logger.debug('Sending user to admin page')
             raise HTTPFound(location = "https:/%s" % quote(email))
         assoc_handle = storage.get_assoc_handle(uid, request)
         association = storage.get_association(assoc_handle)
@@ -425,7 +452,9 @@ class AuthController(BaseController):
     def logout(self, request, **kw):
         """ Log a user out of the ID server
         """
+        import pdb; pdb.set_trace()
         # sanitize value (since this will be echoed back)
+        logger.debug('Logging out.')
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
         uid = self.get_uid(request)
@@ -446,7 +475,6 @@ class AuthController(BaseController):
                                request = request,
                                config = self.app.config)
         response = Response(str(body), content_type = content_type)
-        response.delete_cookie('beaker.session.uid')
         return response
 
     def validate(self, request, **kw):
@@ -504,9 +532,10 @@ class AuthController(BaseController):
         b64_sig = base64.b64encode(signature)
         return b64_sig == sig
 
-    def send_validate_email(self, uid, email):
+    def send_validate_email(self, uid, email, nosend = False, **kw):
         """ Send an email containing the validation token URL to the
-            newly registered email
+            newly registered email, and add the email to the list of
+            unvalidated emails.
         """
         #first, generate a token:
         user = self.app.storage.get_user_info(uid)
@@ -533,8 +562,9 @@ class AuthController(BaseController):
                                to_addr = email,
                                reply_to = reply_to,
                                verify_url = verify_url)
-        if (not self.app.config.get('test.nomail', False)):
+        if (not nosend or not self.app.config.get('test.nomail', False)):
             #for testing, we don't send out the email. (Presume that works.)
+            logger.debug('sending validation email to %s' % email)
             server = smtplib.SMTP(mailserv_name)
             server.sendmail(reply_to,
                             email,

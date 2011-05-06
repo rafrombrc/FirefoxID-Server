@@ -75,7 +75,7 @@ sa_preflight:
 
 # Configure UBUNTU style nginx to point to our config files.
 sa_fixnginx:
-	cp /etc/nginx/nginx.conf{,.backup-`date +r'%Y%m%d'`}
+	cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.backup-`date +r'%Y%m%d'`
 	cp conf/nginx/nginx.conf.UBUNTU /etc/nginx/nginx.conf
 	cp conf/nginx/conf.d/* /etc/nginx/conf.d/*
 #	Some versions of nginx won't allow ssl and non ssl to live in the same dir

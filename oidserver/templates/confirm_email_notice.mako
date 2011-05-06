@@ -17,16 +17,17 @@
 <title>Confirmation email generated</title>
 </head>
 <body>
-<header></header>
+<header>
 <h1>Confirmation email sent</h1>
-<div class="message">
+</header>
+<main>
 <p> Thanks! We've sent a confirmation email to</p>
 <div class="email">${email|h}</div>
 <p>You should receive that message soon. If not, please check your trash or spam
 folders in case it may have been caught by a filter. You may request another
 confirmation mail by visiting your <a href="${admin_url}">admin console</a>
 </p>
-</div>
+</main>
 <footer>
     <div class="buttons">
 <a href="${admin_url}" class="fakebutton">Return to the admin console</a>

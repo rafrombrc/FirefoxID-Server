@@ -250,8 +250,6 @@ class MongoStorage(OIDStorage, OIDStorageBase):
         """
         if pemail is None and len(emails) == 0:
             raise OIDStorageException("Must supply at least one email")
-        if len(emails) == 0:
-            emails.append(unicode(pemail))
         if pemail is None:
             pemail = emails[0]
         if 'default_perms' not in data:

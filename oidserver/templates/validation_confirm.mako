@@ -13,13 +13,15 @@
 <meta name="page" content="conf_email" />
 <head>
 <body>
-<header></header>
+<header>
 <h1>Email Confirmed</h1>
-<div class="message">
+</header>
+<main>
 <p>Thanks! We've confirmed the email address</p>
 <div class="email">${email|h}</div>
 <p>and added it to your account. You may now use that address when logging
 into new sites.</p>
+</main>
 <footer>
 <p><a href="${admin_url}">Go to the admin console</a></p>
 </footer>
