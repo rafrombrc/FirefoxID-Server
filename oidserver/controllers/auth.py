@@ -70,7 +70,6 @@ class AuthController(BaseController):
                     logged_in = association.get('state', True)
             except OIDStorageException:
                 pass
-
             #"""
         if logged_in:
             body = template.render(response = {'success': True,
@@ -324,13 +323,6 @@ class AuthController(BaseController):
         email = None
         storage = self.app.storage
 
-        def dump(str, **kw):
-            print str
-        logger.debug = dump
-        logger.info = dump
-
-
-        logger.debug('in login:')
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
         # User is not logged in or the association is not present.
@@ -347,7 +339,6 @@ class AuthController(BaseController):
                 raise HTTPBadRequest()
             # user normalization complete, check to see if we know this
             # person
-            import pdb; pdb.set_trace()
             uid = self.app.auth.backend.authenticate_user(username,
                                                           password)
             if uid is None:
@@ -375,7 +366,6 @@ class AuthController(BaseController):
         # Attempt to get the uid.
         if uid is None:
             logger.debug('attempting to get uid')
-            import pdb; pdb.set_trace()
             uid = self.get_uid(request, strict = False)
             if uid is None:
                 logger.debug('no uid present')
@@ -411,7 +401,7 @@ class AuthController(BaseController):
                 # Send a validation email (and add the primary email
                 # to the list of unvalidated emails)
                 logger.debug('validating email address %s ' % email)
-                self.send_validate_email(uid,email)
+                self.send_validate_email(uid, email)
         #there is a user, so try to create the association
         if not storage.gen_site_id(request):
             # Hmm, no site id, so this is probably a local login
@@ -452,7 +442,6 @@ class AuthController(BaseController):
     def logout(self, request, **kw):
         """ Log a user out of the ID server
         """
-        import pdb; pdb.set_trace()
         # sanitize value (since this will be echoed back)
         logger.debug('Logging out.')
         (content_type, template) = self.get_template_from_request(request,
@@ -562,7 +551,7 @@ class AuthController(BaseController):
                                to_addr = email,
                                reply_to = reply_to,
                                verify_url = verify_url)
-        if (not nosend or not self.app.config.get('test.nomail', False)):
+        if (not nosend and not self.app.config.get('test.nomail', False)):
             #for testing, we don't send out the email. (Presume that works.)
             logger.debug('sending validation email to %s' % email)
             server = smtplib.SMTP(mailserv_name)
