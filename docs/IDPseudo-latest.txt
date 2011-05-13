@@ -1,0 +1,253 @@
+This document is a rough for the 2011-05 version of the IDServer spec 
+
+http://wiki.mozilla.org/Identity/Verified_Email_Protocol
+
+Please refer to that page for the most recent version information. 
+Your milage may vary. For internal use only. Not be used for gambling purposes. If conditions persist, consult a doctor immediately. Etc. and so on, so on, sooey.
+
+---
+Process flow:
+There are two process steps for certificate creation and exchange.
+For initial creation, the following occurs:
+    A user has a set of emails that are associated with a given account The IdentityAuthority (IA) account generation and email verification process are out of scope of the general protocol, however are reasonably easy to perform. 
+    
+    The UserAgent (UA) logs into the IA using whatever secure mechanism the IA preferes (e.g. username and password) and a SESSION is established. During this login period, the IA iterates over the known list of emails associated with the SESSION (and therefore the user). For each known email address, the IA calls:
+        navigator.id.registerVerifiedEmail(email, function (uaPubkey) {
+                navigator.id.registerVerifiedEmailCertificate ( _getCertForPubkey(uaPubKey), certUpdateURL)
+            })
+    _getCertForPubkey( uaPubKey) generates a Identity Certificate (certificate) that associated with:
+        the email 
+        the passed uaPubKey
+        the session (by inference by the out of spec secure connection between the UA and the IA)
+        
+    The IA is required to log pubkey => cert associations in order to perform future validations.
+        /validateCertificate?certificate=...
+            which will ensure that:
+                the signature is valid
+                the issuer matches the local issuer name
+                the timestamp is valid
+                the email is associated with the user's public key            
+        
+    this process fills the UA with current certificates for the IA, those certificates can be used to generate assertions to the RequestingParty (RP)
+        
+exchange:::
+    When an RP requests an identity via the getVerifiedEmail( function(assertion) { ... } )
+        * the UA checks the set of known certificates, 
+        * selects the one of User choice, 
+        * refreshes the certificate (if required)
+        * generates the IdentityAssertion (assertion)
+        * returns the assertion to the RP
+           
+=========
+The assertion has the following payload:
+assertion = _asJWT({
+                valid-until: TTL, // < cert.valid-until
+                nonce: ...,
+                certificate: _asJWT({
+                    id: email,
+                    valid-until: TTL,
+                    issuer: siteName,
+                    publicKey: {  // from the UA 
+                        algorithm: ...,
+                        keydata: ...
+                    })
+                }
+})
+===
+SERVER:::
+db::
+    ua_public_key(index)
+        [ {email
+        state (verified, pending, ??)
+        created},
+        ...
+        ]
+server functions:
+// Public:
+    verifyAddress(email, uaPublicKey):
+        addressState = _addressState(email)
+        if addressState == VALID_ADDRESS:
+            return _generateAssertion(email)
+        elif addressState == NEEDS_VALIDATION
+            _sendVerificationRequest(email)
+            return _displayVerificationPage(email)
+        else:
+            return _invalidAddress(email)
+    refreshCertificate(certificate):
+        if not isCertificateValid(certificate):
+            return INVALID_CERT;
+        email = extractEmail(certificate)
+        addressState = _addressState(email)
+        if addressState == VALID_ADDRESS:
+            _generateCertificate(email)
+        elif addressState == NEEDS_VALIDATION:
+            return _displayVerificationPage(email)
+        else:
+            return _invalidAddress(email)
+    validateCertificate(certificate):
+        if ((certObject = _certDecode(certificate)) is None:
+            log (InvalidCert: bad certificate)
+            return false
+        if isExpired(certObject):
+            log(InvalidCert:expired);
+            return false
+        if seenNonce(certObject):
+            log(InvalidCert:Replay)
+            return false
+        if not checkAudience(certObject, request):
+            log(InvalidCert: mis-matched audience)
+        return true
+// Private
+    _isAddressLocal(email):
+        return false
+    _validateLocally(email):
+        //TODO
+    _isVerified(email):
+        //TODO
+        
+    _decodeCertificate(certificate)
+        if checkSignature(certificate)
+            return JSON.decode(b64.decode(".".split(certificate)[1]))
+        else
+            return None
+    _addressState(email):
+        if isAddressLocal(email):
+            return _validateLocally(email)
+        else:
+            if _isVerified(email):
+               return VALID_ADDRESS
+            else
+                return NEEDS_VALIDATION
+    _genCertificate(email)
+        certificate = {
+            id: email,
+            issuer: app.config.get('server.ID'),
+            valid-until: _genExpireGMT(app.config.get('server.certificate-TTL')), // in hours
+            publicKey: UAPublicKey
+        }
+    _generateAssertion(email):
+        assertion = {
+            nonce: _genNonce(),
+            valid-until: _genExpireGMT(app.config.get('server.assertion-TTL')), // in minutes
+            id: email,
+            certificate: _genCertificate(id = email)
+        }
+        // send the assertion back to the UA
+        return "navigator.id.registerVerifiedEmailCertificate(" + asJWT(assertion) +
+            "," + CERT_UPDATE_URL +")"
+// Cleanup:
+    * purge email records after $PERIOD
+    * purge nonces after cert $EXPIRY
+// Identity Authority index page:
+        
+#####################
+client functions:
+    dbs:
+     certDB
+        issuer    // who issued the email addr
+        email     // the address used
+        pubKey  // public portion of keypair
+        privKey   // private portion of keypair
+        cert        // IA certification
+        
+    useDB:
+        aud         // RP audience
+        cert        // last cert used (used as a lookup for above.)
+    // service.js calls: (to be used by client facing library)
+    // callback used to rec'v assertions.
+    onVerifiedEmail = function(idAssertion) {}
+    // fetch the IdentityAssertion
+    getVerifiedEmail(audience, {
+            certificate = _getCertificate(audience)
+            if (certificate){
+                return onVerifiedEmail(_createAssertion(certificate))
+            }
+            // TODO: query the user for action.
+        }
+    
+    // wrapper.js calls (to be used by IA server protected library)
+    // called by IA "loader" service, before user attempts to log into an RP.
+    navigator.id.registerVerifiedEmail(email, IAcallback)  {
+        issuer = postMessage.audience
+        keyPair = security.genKey()
+        localstorage.store("insert certDB set ('issuer','pubkey','privkey','email') values (issuer, keyPair.pub, keyPair,priv, email)")
+        IAcallback(email, pubkey); 
+    }
+    // from IA
+    IAcallback(email, pubkey) {
+            xhr.post('verifyAddress', email, pubkey)
+            // the above call will go to the server which will return a JSONp call
+            // navigator.id.registerVerifiedEmailCertificate(certificate, updateURL)
+        }
+        
+    registerVerifiedEmailCertificate(cert, updateURL) {
+            certObject = _parseCert(cert)
+            if (certObject) {
+                localstorage.store("update certDB set cert = cert where issuer = certObject.issuer and pubkey = certObject.pubkey and email = certObject.email;")
+                // additional optimizations may be made here
+            }
+        }
+        
+    // from RP        
+    getVerifiedEmail(callback) {
+            aud = postMessage.audience
+            _getAssertion(aud)
+    }
+    _initialize() {
+        // create localstorage
+        }
+    _getAssertion(audience) {
+        // collapse this?
+        // check in local storage for association record. 
+        certificates = _fetchCertsFromLocal(audience)
+        if (certificates > 1) {
+            // TODO: Query the user for which cert to use.
+            certificate = _selectCertificate(certificates)
+        }
+        else {
+            certificate = certificates[0]
+        }
+        // is timestamp valid?
+        if (_isExpired(certificate)) {
+            xhr.post("/update_certificate", 
+                args: {association: association},  // need the old assoc and cert (otherwise how to inject new cert in callback?
+                success: _getAssertCB,
+                )
+        }
+        
+    _getAssertCB( association ) {
+        // write old association to localstorage
+        assertion.certificate = newCertificate
+        return onVerifiedEmail(assertion)
+    }
+    
+    _createAssertion(certificate) {
+        return _asJWT(
+                { valid-until: now() + _ASSERTION_TTL,
+                  nonce: ...,
+                  certificate: certificate,
+                }
+            )
+    }
+    // the following use hmac-sha256. Subs't sig gen/check with proper crypto method.
+    _asJWT(payload) {
+        header = {'typ': 'JWT', 'alg': 'RSA'}
+        sbs = base64.encode(JSON.encode(header)) + '.' + base64.encode(JSON.encode(payload))
+        signature = base64.encode(rsa(PRIVATEKEY, sbs))
+        return sbs + '.' + signature
+        }
+        
+    _fromJWT(jwt) {
+        elements = jwt.split('.')
+        sbs = elements[0] + '.' + elements[1]
+        sigValue = base64.decode(elements[2])
+        header =  JSON.decode(base64.decode(elements[0]))
+        body = JSON.decode(base64.decode(elements[1]))        
+        if (sigValue == rsa.decode(body.public_key,sbs))
+            return { header: header,
+                    body: body,
+                    signature: sigValue }
+        // should this throw an exception?
+        return UNDEF
+        }
+
