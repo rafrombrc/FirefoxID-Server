@@ -1,0 +1,10 @@
+*.egg-info
+*.pyc
+*_build*
+bin/
+build/
+deps/
+include/
+lib/
+coverage.xml
+nosetests.xml
