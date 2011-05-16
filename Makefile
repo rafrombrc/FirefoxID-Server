@@ -23,7 +23,7 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) -i http://pypi.appspot.com  Funkload==1.14 #Currently locked due to a dependency issue in Funkload.
+	$(EZ) Funkload==1.14 #Currently locked due to a dependency issue in Funkload.
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
