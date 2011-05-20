@@ -1,0 +1,18 @@
+<html>
+  <head>
+    <script type="text/javascript" src="lib/twu-rsa/rsa.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/jsbn.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/jsbn2.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/prng4.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/rng.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/rsa2.js"></script>
+    <script type="text/javascript" src="security.js"></script>
+  </head>
+  <body onClick="rng_seed_time();" onKeyPress="rng_seed_time();">
+    <h1>HTML Client VEP Security Samples</h1>
+    <h2>RSA Key Generation / Storage</h2>
+    <form>
+      <button onclick="alert(JSON.stringify(security.getUAKeyPair('rmiller@mozilla.com')));">click me</a>
+    </p>
+  </body>
+</html>
