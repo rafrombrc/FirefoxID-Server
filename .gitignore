@@ -6,6 +6,6 @@ bin/
 build/
 deps/
 include/
-lib/
+/lib/
 coverage.xml
 nosetests.xml
