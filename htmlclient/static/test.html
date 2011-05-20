@@ -1,18 +1,39 @@
 <html>
   <head>
-    <script type="text/javascript" src="lib/twu-rsa/rsa.js"></script>
-    <script type="text/javascript" src="lib/twu-rsa/jsbn.js"></script>
-    <script type="text/javascript" src="lib/twu-rsa/jsbn2.js"></script>
-    <script type="text/javascript" src="lib/twu-rsa/prng4.js"></script>
-    <script type="text/javascript" src="lib/twu-rsa/rng.js"></script>
-    <script type="text/javascript" src="lib/twu-rsa/rsa2.js"></script>
-    <script type="text/javascript" src="security.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/jquery-1.3.2.min.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/twu-rsa/rsa.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/twu-rsa/jsbn.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/twu-rsa/jsbn2.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/twu-rsa/prng4.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/twu-rsa/rng.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="lib/twu-rsa/rsa2.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="security.js"></script>
+    <script language="javascript" type="text/javascript"
+            src="test.js"></script>
   </head>
-  <body onClick="rng_seed_time();" onKeyPress="rng_seed_time();">
+  <body onClick="rng_seed_time();" onKeyPress="rng_seed_time();"
+        onLoad="doInit();">
     <h1>HTML Client VEP Security Samples</h1>
     <h2>RSA Key Generation / Storage</h2>
-    <form>
-      <button onclick="alert(JSON.stringify(security.getUAKeyPair('rmiller@mozilla.com')));">click me</a>
-    </p>
+
+    <div name="keygen-form">
+      <form name="keygen">
+        <label>email address</label><input type="text" name="email" />
+        <button onclick="alert(JSON.stringify(security.getUAKeyPair(document.keygen.email.value)));">generate key pair</button>
+      </form>
+    </div>
+
+    <div name="stored-keypairs">
+      <ul name="keypairs-list" id="keypairs-list">
+      </ul>
+    </div>
   </body>
 </html>

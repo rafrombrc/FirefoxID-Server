@@ -95,5 +95,10 @@ var security = {};
     return keyPair;
   }
 
+  function getAllKeyPairs() {
+    return _getKeyPairsObject();
+  }
+
   security.getUAKeyPair = getUAKeyPair;
+  security.getAllKeyPairs = getAllKeyPairs;
 })();
