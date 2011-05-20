@@ -40,45 +40,28 @@ var security = {};
     return keyPairs;
   }
 
-  function _setKeyPair(issuer, email, keyPair) {
-    // stores a key pair from local storage, keyed by issuer and then email
-    // address; overwrites any pre-existing keyPairs stored for the same keys
-
-    // fetch top level `keyPairs` object
+  function _setKeyPair(email, keyPair) {
+    // stores a key pair to local storage, keyed by email address; overwrites
+    // any pre-existing keyPairs stored for the same address
     var keyPairs = _getKeyPairsObject();
-
-    // get key pair container for the issuer, creating if necessary
-    issuerKeyPairs = keyPairs[issuer];
-    if (typeof(issuerKeyPairs) === "undefined") {
-      issuerKeyPairs = {};
-      keyPairs[issuer] = issuerKeyPairs;
-    }
-
-    // store the key pair by email address, write out the keyPairs object
-    issuerKeyPairs[email] = keyPair;
+    keyPairs[email] = keyPair;
     _setKeyPairsObject(keyPairs);
   }
 
-  function _getKeyPair(issuer, email) {
+  function _getKeyPair(email) {
     // fetches key pair from local storage, may return null
 
-    // fetch top level `keyPairs` object, then look up keypair sets by issuer
+    // top level `keyPairs` object contains all key pairs registered for the
+    // current origin, keyed by email address
     var keyPairs = _getKeyPairsObject();
-    issuerKeyPairs = keyPairs[issuer];
-    if (typeof(issuerKeyPairs) === "undefined") {
-      return null;
-    }
-
-    // finally fetch the actual key pair filed by email address
-    keyPair = issuerKeyPairs[email];
+    var keyPair = keyPairs[email];
     if (typeof(keyPair) === "undefined") {
       return null;
     }
 
-    var priv = keyPair.priv;
     if (typeof(keyPair.pub) === "undefined" ||
         typeof(keyPair.priv) === "undefined") {
-      // incomplete key pair, throw it away
+      // invalid key pair, throw it away
       return null;
     }
     return keyPair;
@@ -100,13 +83,14 @@ var security = {};
     };
   }
 
-  function getUAKeyPair(issuer, email) {
-    // returns the user agent keypair, creating if necessary
-    var keyPair = _getKeyPair(issuer, email);
+  function getUAKeyPair(email) {
+    // returns the user agent keypair for a given email address for the current
+    // origin
+    var keyPair = _getKeyPair(email);
     if (keyPair === null) {
       // TODO: "please wait" UI
       keyPair = _generateKeyPair(RSA_BITS, RSA_EXP);
-      _setKeyPair(issuer, email, keyPair);
+      _setKeyPair(email, keyPair);
     }
     return keyPair;
   }
