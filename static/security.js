@@ -15,7 +15,12 @@ var security = {};
 
   function _getStorage(key) {
     var fullKey = MOZ_ID_KEY_PREFIX + '.' + key;
-    return localStorage[fullKey];
+    var value = localStorage[fullKey];
+    // normalize local storage misses to a null return
+    if (typeof(value) === "undefined") {
+      value = null;
+    }
+    return value;
   }
 
   function _setKeyPairsObject(keyPairs) {
