@@ -83,7 +83,7 @@ var security = {};
     };
   }
 
-  function getUAKeyPair(email) {
+  function getKeyPairForEmail(email) {
     // returns the user agent keypair for a given email address for the current
     // origin
     var keyPair = _getKeyPair(email);
@@ -99,6 +99,6 @@ var security = {};
     return _getKeyPairsObject();
   }
 
-  security.getUAKeyPair = getUAKeyPair;
+  security.getKeyPairForEmail = getKeyPairForEmail;
   security.getAllKeyPairs = getAllKeyPairs;
 })();
