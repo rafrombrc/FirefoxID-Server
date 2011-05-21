@@ -27,7 +27,7 @@
     <div name="keygen-form">
       <form name="keygen">
         <label>email address</label><input type="text" name="email" />
-        <button onclick="alert(JSON.stringify(security.getUAKeyPair(document.keygen.email.value)));">generate key pair</button>
+        <button onclick="alert(JSON.stringify(security.getKeyPairForEmail(document.keygen.email.value)));">generate key pair</button>
       </form>
     </div>
 
