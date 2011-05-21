@@ -10,7 +10,7 @@ from oidserver.controllers import BaseController
 _OP_ROOT = 'https://services.mozilla.com/openid/'
 
 
-class OIDController(BaseController):
+class UserController(BaseController):
 
     def get_user_info(self, request, **params):
         """ Display the appropriate user page or discovery page """
