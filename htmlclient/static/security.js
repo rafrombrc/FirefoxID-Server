@@ -19,7 +19,7 @@ var security = {};
     // normalize local storage misses to a null return
     if (typeof(value) === "undefined") {
       value = null;
-    }
+    };
     return value;
   }
 
@@ -36,7 +36,7 @@ var security = {};
       keyPairs = {};
     } else {
       keyPairs = JSON.parse(keyPairs);
-    }
+    };
     return keyPairs;
   }
 
@@ -57,13 +57,13 @@ var security = {};
     var keyPair = keyPairs[email];
     if (typeof(keyPair) === "undefined") {
       return null;
-    }
+    };
 
     if (typeof(keyPair.pub) === "undefined" ||
         typeof(keyPair.priv) === "undefined") {
       // invalid key pair, throw it away
       return null;
-    }
+    };
     return keyPair;
   }
 
@@ -91,7 +91,7 @@ var security = {};
       // TODO: "please wait" UI
       keyPair = _generateKeyPair(RSA_BITS, RSA_EXP);
       _setKeyPair(email, keyPair);
-    }
+    };
     return keyPair;
   }
 
