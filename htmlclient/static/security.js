@@ -99,6 +99,30 @@ var security = {};
     return _getKeyPairsObject();
   }
 
+  function storeIdCert(idCertJwt) {
+    // expects identity certificate JWT (Javascript Web Token), stores the
+    // associated ID cert with the key pair for the email address embedded
+    // within the cert; throws an error if no key pair exists for the address,
+    // or if the public key in the cert doesn't match the public key in the
+    // stored key pair
+    var webToken = jwt.WebTokenParser(idCertJwt);
+    var idCertBody = JSON.parse(webToken.objectStr);
+    // TODO: compare the 'issuer' in the cert w/ the origin for this request?
+    // email address is stored as 'id' field in the id cert
+    var email = idCertBody.id;
+    var pubKey = idCertBody.publicKey;
+    var keyPair = _getKeyPair(email);
+    if (keyPair === null) {
+      throw "No key pair exists for " + email;
+    };
+    if (keyPair.pub !=== idCertBody.publicKey) {
+      throw "Public key mismatch";
+    };
+    keyPair.idCert = JSON.stringify(idCertBody);
+    _setKeyPair(email, keyPair);
+  }
+
   security.getKeyPairForEmail = getKeyPairForEmail;
   security.getAllKeyPairs = getAllKeyPairs;
+  security.storeIdCertForEmail = storeIdCertForEmail;
 })();

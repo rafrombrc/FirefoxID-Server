@@ -78,9 +78,8 @@
       callback(email, keyPair.pub);
     },
 
-    registerVerifiedEmailCertificate: function registerCert(cert, updateUrl) {
-      webToken = jwt.WebTokenParser(cert);
-      idCertBody = JSON.parse(webToken.objectStr);
+    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
+      security.storeIdCertForEmail(certJwt);
     },
 
     getVerifiedEmail: function getVerifiedEmail(callback) {
