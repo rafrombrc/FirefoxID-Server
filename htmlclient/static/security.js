@@ -115,7 +115,7 @@ var security = {};
     if (keyPair === null) {
       throw "No key pair exists for " + email;
     };
-    if (keyPair.pub !=== idCertBody.publicKey) {
+    if (keyPair.pub !== idCertBody.publicKey) {
       throw "Public key mismatch";
     };
     keyPair.idCert = JSON.stringify(idCertBody);
