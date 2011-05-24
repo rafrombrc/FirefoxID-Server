@@ -6,13 +6,16 @@
     # Serialize the passed arguments into a JSON token.
     _request = pageargs.get('request', {'params': {},
                             'path': ''})
+    error = pageargs.get('error', None)
+    response = pageargs.get('response', None)
     _content = {"success": True}
-    if 'error' in pageargs:
+    if error:
         _content['success'] = False
-        _content['error'] = pageargs.get('error', {})
-    if 'response' in pageargs:
+        _content['error'] = error
+
+    if response:
         try:
-            for key in pageargs['response'].keys():
+            for key in response.keys():
                 _content[key] = pageargs['response'][key]
         except AttributeError as e:
             pass
