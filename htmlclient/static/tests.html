@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <title>Mozilla ID Security Test Runner</title>
+    <link rel="stylesheet" type="text/css" href="lib/jasmine-1.0.2/jasmine.css">
+    <script type="text/javascript" src="lib/jasmine-1.0.2/jasmine.js"></script>
+    <script type="text/javascript" src="lib/jasmine-1.0.2/jasmine-html.js"></script>
+
+    <!-- source files and dependencies -->
+    <script type="text/javascript" src="lib/twu-rsa/rsa.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/jsbn.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/jsbn2.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/prng4.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/rng.js"></script>
+    <script type="text/javascript" src="lib/twu-rsa/rsa2.js"></script>
+    <script type="text/javascript" src="lib/jwt-token.js"></script>
+    <script type="text/javascript" src="security.js"></script>
+
+    <!-- spec files -->
+    <script type="text/javascript" src="spec/securitySpec.js"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+      jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
+      jasmine.getEnv().execute();
+    </script>
+  </body>
+</html>
