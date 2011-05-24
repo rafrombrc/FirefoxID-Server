@@ -128,5 +128,5 @@ var security = {};
 
   security.getKeyPairForEmail = getKeyPairForEmail;
   security.getAllKeyPairs = getAllKeyPairs;
-  security.storeIdCertForEmail = storeIdCertForEmail;
+  security.storeIdCert = storeIdCert;
 })();
