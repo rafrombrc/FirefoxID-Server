@@ -1,5 +1,6 @@
 describe("Security Public API", function () {
   var originalKeyPairsKey;
+  var originalRSABits;
   var localStorage = window['localStorage'];
   var TEST_KEYPAIRS_KEY = 'testKeyPairs';
   var STORAGE_NAME = security.MOZ_ID_KEY_PREFIX + '.' + TEST_KEYPAIRS_KEY;
@@ -8,12 +9,15 @@ describe("Security Public API", function () {
 
   beforeEach(function() {
     originalKeyPairsKey = security.KEYPAIRS_KEY;
+    originalRSABits = security.RSA_BITS;
     security.KEYPAIRS_KEY = TEST_KEYPAIRS_KEY;
+    security.RSA_BITS = 256;
   });
 
   afterEach(function () {
     localStorage.removeItem(STORAGE_NAME);
     security.KEYPAIRS_KEY = originalKeyPairsKey;
+    security.RSA_BITS = originalRSABits;
   });
 
   it("should start with an empty keyPairs object", function() {
