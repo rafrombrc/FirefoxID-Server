@@ -1,20 +1,24 @@
-var MOZ_ID_KEY_PREFIX = 'moz.id';
-var RSA_BITS = 1024;
-var RSA_EXP = 10001;
 var security = {};
 
 (function() {
+  // public vars
+  security.MOZ_ID_KEY_PREFIX = 'moz.id';
+  security.KEYPAIRS_KEY = 'keyPairs';
+  security.RSA_BITS = 1024;
+  security.RSA_EXP = 10001;
+
+  // private vars
   var rsa = new RSAKey();
   // TODO: err msg if no local storage support
   var localStorage = window['localStorage'];
 
   function _setStorage(key, value) {
-    var fullKey = MOZ_ID_KEY_PREFIX + '.' + key;
+    var fullKey = security.MOZ_ID_KEY_PREFIX + '.' + key;
     localStorage[fullKey] = value;
   }
 
   function _getStorage(key) {
-    var fullKey = MOZ_ID_KEY_PREFIX + '.' + key;
+    var fullKey = security.MOZ_ID_KEY_PREFIX + '.' + key;
     var value = localStorage[fullKey];
     // normalize local storage misses to a null return
     if (typeof(value) === "undefined") {
@@ -25,13 +29,13 @@ var security = {};
 
   function _setKeyPairsObject(keyPairs) {
     // serialize and store the keyPairs object
-    _setStorage('keyPairs', JSON.stringify(keyPairs));
+    _setStorage(security.KEYPAIRS_KEY, JSON.stringify(keyPairs));
   }
 
   function _getKeyPairsObject() {
     // retrieve and deserialize keyPairs object, or return empty object if it
     // doesn't exist
-    var keyPairs = _getStorage('keyPairs');
+    var keyPairs = _getStorage(security.KEYPAIRS_KEY);
     if (keyPairs === null) {
       keyPairs = {};
     } else {
@@ -89,7 +93,7 @@ var security = {};
     var keyPair = _getKeyPair(email);
     if (keyPair === null) {
       // TODO: "please wait" UI
-      keyPair = _generateKeyPair(RSA_BITS, RSA_EXP);
+      keyPair = _generateKeyPair(security.RSA_BITS, security.RSA_EXP);
       _setKeyPair(email, keyPair);
     };
     return keyPair;
