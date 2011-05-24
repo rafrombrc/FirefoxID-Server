@@ -23,4 +23,11 @@ describe("Security Public API", function () {
   it("should start with an empty keyPairs object", function() {
     expect(security.getAllKeyPairs()).toEqual({});
   });
+
+  it("should generate a key pair for an email address", function() {
+    var keyPair = security.getKeyPairForEmail(test_email);
+    expect('pub' in keyPair).toBeTruthy();
+    expect('priv' in keyPair).toBeTruthy();
+    expect('idCert' in keyPair).toBeFalsy();
+  });
 });
