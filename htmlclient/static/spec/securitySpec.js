@@ -2,7 +2,9 @@ describe("Security Public API", function () {
   var originalKeyPairsKey;
   var localStorage = window['localStorage'];
   var TEST_KEYPAIRS_KEY = 'testKeyPairs';
-  var storageKey = MOZ_ID_KEY_PREFIX + '.' + 'keyPairs'
+  var STORAGE_NAME = security.MOZ_ID_KEY_PREFIX + '.' + TEST_KEYPAIRS_KEY;
+
+  var test_email = 'sasquatch@example.com';
 
   beforeEach(function() {
     originalKeyPairsKey = security.KEYPAIRS_KEY;
@@ -10,6 +12,7 @@ describe("Security Public API", function () {
   });
 
   afterEach(function () {
+    localStorage.removeItem(STORAGE_NAME);
     security.KEYPAIRS_KEY = originalKeyPairsKey;
   });
 
