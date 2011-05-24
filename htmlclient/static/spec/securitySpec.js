@@ -30,4 +30,9 @@ describe("Security Public API", function () {
     expect('priv' in keyPair).toBeTruthy();
     expect('idCert' in keyPair).toBeFalsy();
   });
+
+  it("should return the same key pair later", function() {
+    var keyPair = security.getKeyPairForEmail(test_email);
+    expect(keyPair).toEqual(security.getKeyPairForEmail(test_email));
+  });
 });
