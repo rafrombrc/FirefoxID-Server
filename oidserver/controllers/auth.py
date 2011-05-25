@@ -73,7 +73,8 @@ class AuthController(BaseController):
         response = None
         error = None
         uid = self.get_session_uid(request)
-        (content_type, template) = self.get_template_from_request(request)
+        (content_type, template) = self.get_template_from_request(request,
+                                                    html_template = "register")
         if uid is None:
             error = self.error_codes.get('LOGIN_ERROR')
         else:
