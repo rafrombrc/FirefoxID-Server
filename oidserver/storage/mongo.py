@@ -10,7 +10,7 @@ import time
 import types
 
 
-class MongoStorage(OIDStoragee):
+class MongoStorage(OIDStorage):
     """ Store data into a Mongo instance """
 
     def __init__(self, host = '127.0.0.1', port = 27017, database = 'id'):
@@ -30,7 +30,6 @@ class MongoStorage(OIDStoragee):
             _id     user id
             pemail  primary email
             emails  verified email list
-            unv_emails unverified email object dict
             name    user name
             data    non-indexable user data elements (e.g. avatar,
                         poco_server, preferred nickname, etc.)
@@ -105,10 +104,11 @@ class MongoStorage(OIDStoragee):
         user = self._user_db.get(uid,None)
         if user is None:
             raise OIDStorageException("uid not found")
-        if 'unv_emails' not in user:
-            user['unv_emails'] = {}
-        user['unv_emails'][email.encode('ascii')] = \
+        if 'emails' not in user:
+            user['emails'] = {}
+        user['emails'][email.encode('ascii')] = \
                 {'created': int(time.time()),
+                 'state': 'pending',
                  'conf_code': rtoken}
         self.set_user_info(uid, user)
         validation_record[u'_id'] = rtoken
@@ -119,20 +119,23 @@ class MongoStorage(OIDStoragee):
         user = self._user_db.find_one({u'uid': uid})
         if user is None:
             return None
-        if email in user.get('unv_emails',{}):
-            return user.get('unv_emails').get(email, {}).get('conf_code', None)
+        if (email in user.get('emails',{}) and
+            user['emails'][email].get('state', None) == 'pending'):
+            return user['emails'][email].get('conf_code', None)
         return None
 
     def remove_unvalidated(self, uid, email):
         user = self._user_db[uid]
-        if email in user['unv_emails']:
-            rtoken = user['unv_emails'][email]['conf_code']
-            try:
-                del user['unv_emails'][email]
-                self.set_user_info(uid, user)
-                self._validate_db.remove({'_id': rtoken})
-            except KeyError, OperationFailure:
-                return False
+        if (email in user['emails'] and
+            user['emails'][email].get('state', None) == 'pending'):
+                rtoken = user['emails'][email].get('conf_code', None)
+                if rtoken:
+                    try:
+                        del user['emails'][email]
+                        self.set_user_info(uid, user)
+                        self._validate_db.remove({'_id': rtoken})
+                    except KeyError, OperationFailure:
+                        return False
         return True
 
     def check_validation(self, uid, token):
@@ -143,7 +146,7 @@ class MongoStorage(OIDStoragee):
                 if user is not None:
                     email = record['email']
                     user['emails'].append(email)
-                    del user['unv_emails'][email]
+                    del user['emails'][email]
                     self._validate_db.remove({u'_id':token})
                 self.set_user_info(uid, user)
                 return True

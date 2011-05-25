@@ -72,14 +72,16 @@ class AuthController(BaseController):
     def registered_emails(self, request, **kw):
         response = None
         error = None
-        uid = self.get_session_uid(requeset)
+        uid = self.get_session_uid(request)
+        (content_type, template) = self.get_template_from_request(request)
         if uid is None:
             error = self.error_codes.get('LOGIN_ERROR')
         else:
             user_info = self.app.storage.get_user_info(uid)
             emails = []
             for email in user_info.get('emails'):
-                if email.get('state',None) == 'verified':
+                email_record = user_info['emails'].get(email)
+                if email_record.get('state',None) == 'verified':
                     emails.append(email)
             response = {'emails': emails}
         body = template.render(request = request,
@@ -180,7 +182,6 @@ class AuthController(BaseController):
         uid = None
         email = None
         storage = self.app.storage
-        import pdb; pdb.set_trace()
 
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
@@ -241,7 +242,7 @@ class AuthController(BaseController):
         # Ok, got a UID, so let's get the user info
         user = storage.get_user_info(uid)
         if not email:
-            email = request.params.get('id', None)
+            email = request.params.get('email', None)
             if email:
                 self.send_validate_email(uid, email)
         logger.debug('Sending user to admin page')
@@ -366,7 +367,7 @@ class AuthController(BaseController):
             return self.login(request, extra)
         body = ""
         try:
-            email = self.app.storage.check_validation(token, uid)
+            email = self.app.storage.check_validation(uid, token)
         except OIDStorageException:
             raise HTTPBadRequest()
         if not email:
@@ -513,7 +514,6 @@ class AuthController(BaseController):
     def is_internal(self, request):
         # placeholder function for internal only calls.
         return True
-
 
     def validate_json_web_token(self, token):
         """ Confirm that the given JWT is a properly specified object

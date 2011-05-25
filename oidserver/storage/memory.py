@@ -71,11 +71,12 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         user = self._user_db.get(uid,None)
         if user is None:
             raise OIDStorageException("uid not found")
-        if 'unv_emails' not in user:
-            user['unv_emails'] = {}
-        user['unv_emails'][email.encode('ascii')] = \
+        if 'emails' not in user:
+            user['emails'] = {}
+        user['emails'][email.encode('ascii')] = \
                 {'created': int(time.time()),
-                 'conf_code': rtoken}
+                 'conf_code': rtoken,
+                 'state': 'pending'}
         self._user_db[uid] = user
         self._validate_db[rtoken] = validation_record
         return rtoken
@@ -84,20 +85,21 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         user = self._user_db.get(uid,None)
         if user is None:
             return None
-        if email in user.get('unv_emails',{}):
-            return user.get('unv_emails').get(email, {}).get('conf_code', None)
+        if email in user.get('emails',{}):
+            return user.get('emails').get(email, {}).get('conf_code', None)
         return None
 
     def remove_unvalidated(self, uid, email):
         user = self._user_db[uid]
-        if email in user['unv_emails']:
-            rtoken = user['unv_emails'][email]['conf_code']
-            try:
-                del user['unv_emails'][email]
-                self._user_db[uid] = user
-                del self._validate_db[rtoken]
-            except KeyError:
-                return False
+        if email in user['emails']:
+            if user['emails'][email].get('state', None) == 'pending':
+                rtoken = user['emails'][email]['conf_code']
+                try:
+                    del user['emails'][email]
+                    self._user_db[uid] = user
+                    del self._validate_db[rtoken]
+                except KeyError:
+                    return False
         return True
 
     def check_validation(self, uid, token):
@@ -107,8 +109,12 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                 user = self._user_db.get(uid)
                 if user is not None:
                     email = record['email']
-                    user['emails'].append(email)
-                    del user['unv_emails'][email]
+                    # only deal with 'pending' records.
+                    if user['emails'][email].get('state', None) == 'pending':
+                        user['emails'][email]['state'] = 'verified';
+                        # Remove the old valiation code
+                    if 'conf_code' in user['emails'][email]:
+                        del user['emails'][email]['conf_code']
                     del self._validate_db[token]
                 self._user_db[uid] = user
                 return True

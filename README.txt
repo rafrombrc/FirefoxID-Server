@@ -27,8 +27,12 @@ simple to determine the corresponding package names for your system:
 
     python-2.6
     python-virtualenv
-    libsasl2-dev (required for stand-alone)
-    libssl-dev (required for stand-alone)
+    (the following are required for stand-alone)
+        openldap-devel
+        openssl-devel 
+    or
+        libsasl2-dev
+        libssl-dev 
 
 We run the package via nginx, although there's no requirement for deployment.
     nginx

@@ -92,6 +92,8 @@ class OIDApp(SyncServerApp):
                         #        'auth', 'verify'),
                         ('GET', '/{user:[@\w\.\-\+]+}',
                                 'user', 'get_user_info'),
+                        ('GET', '/%s/register' % VERSION,
+                                'auth', 'registered_emails')
                         ]
                 # copy the admin_urls into the standard urls.
                 map(urls.append, admin_urls)

@@ -34,9 +34,11 @@ class TestApi(unittest.TestCase):
                 }
 
     ## API Entry points:
-    #  get_certificate
-    #  refresh_certificate
+    #  get_certificate x
+    #  refresh_certificate x
     #  validate/....
+    #
+    ## Admin entry points
     #  verify_address
     #
 
@@ -117,7 +119,7 @@ class TestApi(unittest.TestCase):
         user = storage.get_user_info(self.user_info.get('uid'))
         ## pull the confirmation code
         conf_code = \
-            user.get('unv_emails').get(test_info['unv']).get('conf_code')
+            user.get('emails').get(test_info['unv']).get('conf_code')
         params = self.default_params.copy()
         path = ('/%s/validate/' % VERSION) + conf_code
         response = self.app.get(path,
@@ -128,8 +130,8 @@ class TestApi(unittest.TestCase):
             response.body)
         user = storage.get_user_info(self.user_info.get('uid'))
         self.failIf(test_info['unv'] not in user.get('emails'))
-        if user['unv_emails']:
-            self.failIf(test_info['unv'] in user['unv_emails'])
+        self.failIf(user['emails'][test_info['unv']].get('state') \
+                    != 'verified')
 
     def test_debug(self):
         resp = self.app.get('/__debug__',
@@ -146,7 +148,7 @@ class TestApi(unittest.TestCase):
         self.failUnless(self.good_credentials.get('email') in validEmails)
         # verify that the good email address is present.
         path = '/%s/get_certificate' % VERSION
-        params = self.default_params
+        params = self.default_params.copy()
         params.update({'id': validEmails[0],
                        'pubkey': self.good_credentials.get('pubKey'),
                        'output': 'html'})
@@ -158,66 +160,9 @@ class TestApi(unittest.TestCase):
         self.failUnless('"success": true' in response.body)
         self.purge_db()
 
-    def test_get_emails(self):
-        """ get list of valid emails for this user """
-        self.setUp()
-        path = '/%s/get_emails' % VERSION
-        response = self.app.post(path,
-                                 params = self.default_params,
-                                 status = 200)
-        resp_obj = json.loads(response.body)
-        self.failIf('emails' not in resp_obj)
-        self.failIf(self.good_credentials.get('email')
-                    not in resp_obj.get('emails'))
-        self.purge_db()
-
     def test_heartbeat(self):
         self.app.get('/__heartbeat__',
                      status = 200)
-
-    def test_logged_in(self):
-        """ check if the user is logged in to a given associated site """
-        path = '/%s/logged_in' % VERSION
-        self.app.reset()
-        self.setUp()
-        #"""
-        # Test not logged in at all.
-        # These tests are pending me figuring out how to kill sessions
-        # in unit-test beaker.
-        self.purge_db()
-        params = self.default_params.copy()
-        response = self.app.post(path,
-                                 params = params,
-                                 status = 200)
-        json_obj = json.loads(response.body)
-        self.failIf(json_obj['success'] != False or
-                    json_obj['error']['code'] != 401)
-        self.app.reset()
-        # """
-        #Test if the user is logged in, but no association exists.
-        self.setUp()
-        params = self.default_params.copy()
-        response = self.app.post(path,
-                                    params,
-                                    extra_environ = self.extra_environ,
-                                    status = 200)
-        json_obj = json.loads(response.body)
-        # Remember, user is logged in to identity, not the remote site.
-        self.failIf(json_obj['success'] != False)
-        # """
-        #test if the user is logged in, with an active association
-        self.purge_db()
-        self.setUp()
-        params = self.default_params.copy()
-        params.update({'email': self.good_credentials.get('email')})
-        self.app.reset()
-        response = self.app.post(path,
-                                 params = params,
-                                 extra_environ = self.extra_environ,
-                                 status = 200)
-        json.loads(response.body)
-        #test if the user is logged in with an invalid association
-        self.purge_db()
 
     def test_login(self):
         #page should return 302 (not 307)
@@ -260,13 +205,32 @@ class TestApi(unittest.TestCase):
         storage = self.app.app.wrap_app.app.storage
 
     def test_refresh_certificate(self):
+        """ attempt to refresh a given certificate """
         self.setUp()
         path = '/%s/refresh_certificate' % VERSION
-        params = self.default_params
+        params = self.default_params.copy()
         params.update({
             'certificate':self.app.app.wrap_app.app.controllers.get('auth').\
                 gen_certificate(self.good_credentials.get('email'),
                                 self.good_credentials.get('pubKey')),
             'pubkey': self.good_credentials.get('pubKey')})
         response = self.app.post(path,
-                                 params = params)
+                                 params = params,
+                                 status = 200)
+        resp_obj = json.loads(response.body)
+        self.failUnless(resp_obj.get('success'))
+        self.purge_db()
+
+    def test_registered_emails(self):
+        """ Return a list of emails associated with the user. """
+        self.setUp()
+        request = FakeRequest()
+        request.remote_addr = '127.0.0.1'
+        path = '/%s/register' % VERSION
+        response = self.app.get(path,
+                                status = 200)
+        self.failUnless('navigator.id.registerVerifiedEmail'
+                        in response.body)
+        self.failUnless(self.good_credentials.get('email') in response.body)
+        # get_certificate tested elsewhere.
+        self.purge_db()

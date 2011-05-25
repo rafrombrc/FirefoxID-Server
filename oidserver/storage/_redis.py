@@ -81,10 +81,9 @@ class RedisStorage(OIDStorage):
         except (TypeError, EOFError), ex:
             logger.error("Unpickling error %s " % ex)
             raise (OIDStorageException("Storage error"))
-        if 'unv_emails' not in user:
-            user['unv_emails'] = {}
-        user['unv_emails'][email.encode('ascii')] = \
+        user['emails'][email.encode('ascii')] = \
                 {'created': int(time.time()),
+                 'state': 'pending',
                  'conf_code': rtoken}
         self._db.set('%s%s' % (self.USER_DB,uid), user)
         self._db.set('validate_%s' % rtoken, validation_record)
@@ -97,9 +96,9 @@ class RedisStorage(OIDStorage):
             return None
         user = loads(user_info)
         aemail = email.encode('ascii')
-        if aemail in user.get('unv_emails',{}):
-            return user.get('unv_emails').get(aemail,
-                                              {} ).get('conf_code', None)
+        if (aemail in user.get('emails',{}) and
+            user['emails'][aemail].get('state', None) == 'pending'):
+            return user['emails'][aemail].get('conf_code', None)
         logger.info('No validation token found for uid %s ' % uid)
         return None
 
@@ -109,17 +108,19 @@ class RedisStorage(OIDStorage):
             logger.warn('No user information found for uid %s' % uid)
             return False
         user = loads(user_info)
-        if email in user.get('unv_emails', {}):
-            rtoken = user.get('unv_emails').get(email,{}).get('conf_code',None)
-            if rtoken:
-                try:
-                    del user['unv_emails'][email]
-                    self.set_user_info(uid, user)
-                    self._db.delete('validate_%s' % rtoken)
-                except KeyError, ex:
-                    logger.warn ("Could not remove unvalidated address [%s] "+
-                                 " from uid [%s] [%s]" % (email, uid, str(ex)))
-                    return False
+        if (email in user.get('emails', {}) and
+            user['emails'][email].get('state', None) == 'pending'):
+                rtoken = user['emails'][email].get('conf_code',None)
+                if rtoken:
+                    try:
+                        del user['emails'][email]
+                        self.set_user_info(uid, user)
+                        self._db.delete('validate_%s' % rtoken)
+                    except KeyError, ex:
+                        logger.warn ("Could not remove unvalidated " +
+                                     "address [%s] from uid [%s] [%s]" %
+                                     (email, uid, str(ex)))
+                        return False
         return True
 
     def check_validation(self, uid, token):
@@ -132,8 +133,12 @@ class RedisStorage(OIDStorage):
                     user = self.get_user_info(record.get('uid'))
                     if user is not None:
                         email = record.get('email')
-                        user['emails'].append(email)
-                        del user['unv_emails'][email]
+                        if user['emails'][email].get('state',
+                                                     None) == 'pending':
+                            user['emails'][email]['state'] = 'verified'
+                        if 'conf_code' in user['emails'][email]:
+                            del user['emails'][email]['conf_code']
+                        del user['emails'][email]
                         self._db.delete('%s%s', (self.VALID_DB, token))
                     self.set_user_info(uid, user)
                     return True
