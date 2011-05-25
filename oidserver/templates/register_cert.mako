@@ -7,19 +7,13 @@
                             'path': ''})
     error = pageargs.get('error', None)
     _callback = pageargs.get('callback',
-        'navigator.id.registerVerifiedEmail')
+        'navigator.id.registerVerifiedEmailCertificate')
     response = pageargs.get('response', None)
     _content = {"success": True}
     if error:
         _content['success'] = False
         _content['error'] = error
 
-    if response:
-        try:
-            for key in response.keys():
-                _content[key] = pageargs['response'][key]
-        except AttributeError as e:
-            pass
     _content['sid'] = ''
     _content['operation'] = ''
     try:
@@ -36,6 +30,4 @@
 
     common_args = json.dumps(_content)
 %>
-%for email in response.get('emails',[]):
-${_callback}("${email}", ${rcallback}, ${common_args})
-%endfor
+${_callback}("${response.get('certificate', '')}", "${response.get('callbackUrl', '')}", ${common_args})

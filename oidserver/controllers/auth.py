@@ -109,7 +109,8 @@ class AuthController(BaseController):
     def get_certificate(self, request, **kw):
         response = None
         error = None
-        (content_type, template) = self.get_template_from_request(request)
+        (content_type, template) = self.get_template_from_request(request,
+                                        html_template = 'register_cert')
         pub_key = request.params.get('pubkey',None)
         email = request.params.get('id',None)
         uid = self.get_session_uid(request)

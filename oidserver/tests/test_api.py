@@ -152,6 +152,7 @@ class TestApi(unittest.TestCase):
         params.update({'id': validEmails[0],
                        'pubkey': self.good_credentials.get('pubKey'),
                        'output': 'html'})
+        import pdb; pdb.set_trace()
         response = self.app.post(path,
                                  params = params,
                                  status = 200)
