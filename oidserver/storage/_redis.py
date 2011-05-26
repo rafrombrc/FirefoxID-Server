@@ -7,12 +7,16 @@ from oidserver.storage.oidstoragebase import OIDStorageBase
 from services import logger
 from services.util import randchar
 
+# TODO: should I switch to cJson for data storage?
+
 import redis
 import time
 
 
-class RedisStorage(OIDStorage, OIDStorageBase):
+class RedisStorage(OIDStorage):
     prefix = 'id'
+    USER_DB = 'user_'
+    VALID_DB = 'validate_'
 
     def __init__(self, host='127.0.0.1', port=6379, database='id', **kw):
         self.prefix = database
@@ -22,70 +26,123 @@ class RedisStorage(OIDStorage, OIDStorageBase):
     def get_name(self):
         return 'redis'
 
-    #
-    # Redirect Helpers
-    #
-    def add_redirect(self, url, site, handle):
-        token = sha1(url).hexdigest()
-        dump = dumps((url, site, handle))
-        self._db.set(token, dump)
-        return token
+    def get_address_info(self, uid, email_address):
+        addr_info = self._db.get('%s%s' % (self.USER_DB, uid),
+                            {}).get('emails', {}).get(email_address, None)
+        if addr_info is not NOne:
+            addr_info['email'] = email_address
+            addr_info['uid'] = uid
+        return addr_info
 
-    def get_redirect(self, token):
-        return loads(self._db.get(token))
+    def get_user_info(self, uid):
+        return loads(self._db.get('%s%s' % (self.USER_DB, uid)))
 
-    #
-    # Association APIs
-    #
-    def set_association(self, uid, request,
-                        site_id = None,
-                        handle = None,
-                        secret = None,
-                        email = None,
-                        perms = 0,
-                        state = 1,
-                        **kw):
+    def set_user_info(self, uid, info):
+        self._db.set('%s%s' % (self.USER_DB, uid), dumps(info))
 
-        if handle is None:
-            handle = self.get_assoc_handle(uid, request)
-            if handle is None:
-                raise OIDStorageException("Invalid handle specified")
-        if secret is None:
-            secret = self.gen_site_secret(request)
-        if email is None:
-            email = self.get_user_info(uid).get('pemail')
-        handle = "assoc_" + handle
-        dump = dumps((secret, assoc_type, private))
-        self._db.set(handle, dump)
+    def get_addresses(self, uid, filter = None ):
+        addrs = self._db.get('%s%s' % (self.USER_DB, uid), {}).get('emails')
+        if addrs is None:
+            return None
+        list = []
+        for addr in addrs:
+            if (filter is not None and
+                addrs.get(addr).get('state', None) != filter):
+                continue
+            list.append(addr)
+        return list
 
-    def get_association(self, handle):
-        secret = self._db.get(handle)
-        if secret is None:
-            raise KeyError(handle)
-        return loads(secret)
+    def set_address_info(self, uid, email_address, info):
+        info = self.get_user_info(uid)
+        if info is None:
+            info = {'emails': {}}
+        info['emails'][email_address] = info
+        self.set_user_info(uid, info)
+        return self.get_address_info(uid, email_address)
 
-    def del_association(self, handle):
-        """Removes the association and all its sites"""
-        self._db.delete(handle)
-        self._db.delete('%s:sites' % handle)
+    def set_user_info(self, uid, info=None, **kw):
+        self._db.set(uid, dumps(info))
 
-    #
-    # Site : sites associated with an association handle
-    #
-    def add_site(self, handle, site):
-        ttl = self._db.ttl(handle)
-        if ttl == -1:
-            # oops the association handle is gone
-            raise KeyError(handle)
-        key = '%s:sites' % handle
-        if not self._db.sismember(key, site):
-            self._db.sadd(key, site)
-        self._db.expire(key, ttl)
+    def del_user(self, uid, confirmed = False):
+        if confirmed:
+            self._db.delete('%s%s' % (self.USER_DB,uid))
 
-    def get_sites(self, handle):
-        key = '%s:sites' % handle
-        return self._db.smembers(key)
+    def add_validation(self, uid, email):
+        rtoken = ''.join([randchar() for i in range(26)])
+        validation_record = {'uid': uid,
+                             'created': datetime.now(),
+                             'email': email}
+        user_info = self._user_db.get(uid,None)
+        if user is None:
+            logger.error("Could not find user record for uid %s" % uid)
+            raise OIDStorageException("uid not found")
+        try:
+            user =  loads(user_info)
+        except (TypeError, EOFError), ex:
+            logger.error("Unpickling error %s " % ex)
+            raise (OIDStorageException("Storage error"))
+        user['emails'][email.encode('ascii')] = \
+                {'created': int(time.time()),
+                 'state': 'pending',
+                 'conf_code': rtoken}
+        self._db.set('%s%s' % (self.USER_DB,uid), user)
+        self._db.set('validate_%s' % rtoken, validation_record)
+        return rtoken
 
-    def check_auth(self, handle, site):
-        key = '%s:sites' % handle
-        return self._db.sismember(key, site)
+    def get_validation_token(self, uid, email):
+        user_info = self._db.get('%s%s' % (self.USER_DB, uid))
+        if user_info is None:
+            logger.warn('No user information found for uid %s' % uid)
+            return None
+        user = loads(user_info)
+        aemail = email.encode('ascii')
+        if (aemail in user.get('emails',{}) and
+            user['emails'][aemail].get('state', None) == 'pending'):
+            return user['emails'][aemail].get('conf_code', None)
+        logger.info('No validation token found for uid %s ' % uid)
+        return None
+
+    def remove_unvalidated(self, uid, email):
+        user_info = self._db.get('%s%s' % (self.USER_DB, uid))
+        if user_info is None:
+            logger.warn('No user information found for uid %s' % uid)
+            return False
+        user = loads(user_info)
+        if (email in user.get('emails', {}) and
+            user['emails'][email].get('state', None) == 'pending'):
+                rtoken = user['emails'][email].get('conf_code',None)
+                if rtoken:
+                    try:
+                        del user['emails'][email]
+                        self.set_user_info(uid, user)
+                        self._db.delete('validate_%s' % rtoken)
+                    except KeyError, ex:
+                        logger.warn ("Could not remove unvalidated " +
+                                     "address [%s] from uid [%s] [%s]" %
+                                     (email, uid, str(ex)))
+                        return False
+        return True
+
+    def check_validation(self, uid, token):
+        try:
+            record = {}
+            record_info = self._db.get('%s%s' % (self.VALID_DB, token), None)
+            if record_info is not None:
+                record = loads(record_info)
+                if record.get('uid') == uid:
+                    user = self.get_user_info(record.get('uid'))
+                    if user is not None:
+                        email = record.get('email')
+                        if user['emails'][email].get('state',
+                                                     None) == 'pending':
+                            user['emails'][email]['state'] = 'verified'
+                        if 'conf_code' in user['emails'][email]:
+                            del user['emails'][email]['conf_code']
+                        del user['emails'][email]
+                        self._db.delete('%s%s', (self.VALID_DB, token))
+                    self.set_user_info(uid, user)
+                    return True
+        except KeyError:
+            pass
+        return False
+

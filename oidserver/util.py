@@ -170,47 +170,6 @@ class IdResMessage(dict):
         self.signed = signed
         return handle
 
-    def get_url(self):
-        parsed = list(urlparse.urlparse(self['openid.return_to']))
-        old_query = urlparse.parse_qs(parsed[4])
-        for key, value in old_query.items():
-            if key in self:
-                continue
-            self[key] = value[0]
-        parsed[4] = urllib.urlencode(self)
-        return urlparse.urlunparse(parsed)
-
-    def store_site(self):
-        self.storage.add_site(self['openid.assoc_handle'], self.site)
-
-    def store_redirect(self):
-        return self.storage.add_redirect(self.get_url(),
-                              self.site, self['openid.assoc_handle'])
-
-    def sign(self):
-        """Signs the message.
-        """
-        self['openid.signed'] = ','.join(self.signed)
-        # collecting fields to sign
-        fields = []
-        for field in self.signed:
-            value = self['openid.' + field]
-            fields.append('%s:%s\n' % (field, value))
-        fields = str(''.join(fields))
-        # getting the handle
-        mac_key, assoc_type = self._get_association()
-        logger = logging.getLogger('oid')
-        logger.debug('signing with "%s"' % mac_key)
-        logger.debug('data "%s"' % str(self))
-        # picking the hash type
-        if assoc_type == 'HMAC-SHA256':
-            crypt = hashlib.sha256
-        else:
-            crypt = hashlib.sha1
-        # signing the message
-        hash = hmac.new(str(mac_key), fields, crypt)
-        self['openid.sig'] = b64encode(hash.digest())
-
     def _get_association(self):
         # getting the handle
         handle = self.get('openid.assoc_handle')
@@ -224,66 +183,12 @@ class IdResMessage(dict):
 
         return mac_key, assoc_type
 
-
-def check_authentication(storage, **params):
-    site = params.get('openid.trust_root')
-    if site is None:
-        site = params.get('openid.return_to')
-    site = site.split('?')[0]    # XXX
-    handle = params.get('openid.assoc_handle')
-    result = ['openid_mode:id_res\n']
-    if storage.check_auth(handle, site):
-        result.append('is_valid:true\n')
-        storage.del_association(handle)
-    else:
-        result.append('is_valid:false\n')
-    return ''.join(result)
-
-
 _TMPL = os.path.join(os.path.dirname(__file__), 'templates')
 
 
 def get_template(name):
     name = os.path.join(_TMPL, '%s.mako' % name)
     return Template(filename=name)
-
-
-def create_association(storage, expires_in=3600, **params):
-    assoc_type = params['openid.assoc_type']
-    session_type = params['openid.session_type']
-    # creating association info
-    secret, assoc_handle = create_handle(assoc_type)
-
-    res = {'ns': 'http://specs.openid.net/auth/2.0',
-           'assoc_handle': assoc_handle,
-           'session_type': session_type,
-           'assoc_type': assoc_type,
-           'expires_in': str(expires_in)}
-    if session_type in ('DH-SHA1', 'DH-SHA256'):
-        dh_pub = b64decode(params['openid.dh_consumer_public'])
-        dh_pub = unbtwoc(dh_pub)
-        if 'openid.dh_gen' in params:
-            dh_gen = b64decode(params['openid.dh_gen'])
-            dh_gen = unbtwoc(dh_gen)
-        else:
-            dh_gen = None
-        if 'openid.dh_modulus' in params:
-            dh_modulus = b64decode(params['openid.dh_modulus'])
-            dh_modulus = unbtwoc(dh_modulus)
-        else:
-            dh_modulus = None
-        # building the DH signature
-        key, serv_pub = get_dh_key(dh_pub, session_type,
-                                    secret, dh_gen, dh_modulus)
-        res['dh_server_public'] = serv_pub
-        res['enc_mac_key'] = key
-    elif session_type == 'no-encryption':
-        res['mac_key'] = b64encode(secret)
-    storage.add_association(assoc_handle, secret, assoc_type,
-                            False, expires_in)
-    res = ['%s:%s' % (key, value) for key, value in res.items()]
-    return '\n'.join(res)
-
 
 # The following filters are not guaranteed safe, but should trap most
 # unsafe behaviors.

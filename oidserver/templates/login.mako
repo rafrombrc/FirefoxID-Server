@@ -62,6 +62,7 @@
      identity</label> <a href="${id_help_url}">Identity?</a>
     </p>
     </form>
+
     </main>
      <footer>
      <div class="register"><b>Don't have a Firefox ID?</b>

@@ -2,7 +2,6 @@ import abc
 from services.pluginreg import PluginRegistry
 
 
-
 class OIDStorageException(Exception):
     def __init__(self, value):
         self.value = value
@@ -15,29 +14,43 @@ class OIDStorage(PluginRegistry):
     """Abstract Base Class for the storage."""
     plugin_type = 'oidstorage'
 
+#Standard methods
     @abc.abstractmethod
-    def add_redirect(self, url, user, site, handle):
-        """Stores a redirect.
+    def get_user_info(uid):
+        """ Return a dict of user info for the corresponding uid. """
 
+    @abc.abstractmethod
+    def set_user_info(uid, info):
+        """ Set/Create the user information """
+
+    @abc.abstractmethod
+    def get_address_info(uid, email_address):
+        """ return info regarding a specific email address for a specific
+            uid """
+
+    @abc.abstractmethod
+    def get_addresses(uid, filter):
+        """ return addressed for email optionally filtered """
+
+#Auth Methods (for stand alone server/IA implementations)
+    @abc.abstractmethod
+    def add_validation(self, uid, email):
+        """ Generate a validation key and log it for a particular user/email
         """
 
     @abc.abstractmethod
-    def get_redirect(self, token):
-        """Retrieves a redirect
+    def check_validation(self, uid, token):
+        """ Fetch an email address associated with a token, (verify it's
+            owned by the uid), and add it to the list of uid's valid emails
         """
 
     @abc.abstractmethod
-    def get_sites(self, user):
-        """Returns all sites a user added an authorization to.
+    def get_validation_token(self, uid, email):
+        """ Fetch out a validation token for a specific uid/email """
 
-        Args:
-           user: User
-
-        Return:
-           A sequence of (site, handle)
-        """
-
-
+    @abc.abstractmethod
+    def remove_unvalidated(self, uid, email):
+        """ GC unvalidated elements """
 
 def get_storage(config, type='oidstorage'):
     # loading provided storages

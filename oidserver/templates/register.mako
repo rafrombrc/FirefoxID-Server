@@ -1,12 +1,13 @@
 <%
-    ## This page works in co-ordination with the front end code. It is invoked
-    ## when the ouput form is set to "json".
+    ## Return the list of emails as individual calls to callback
     import json
 
     # Serialize the passed arguments into a JSON token.
     _request = pageargs.get('request', {'params': {},
                             'path': ''})
     error = pageargs.get('error', None)
+    _callback = pageargs.get('callback',
+        'navigator.id.registerVerifiedEmail')
     response = pageargs.get('response', None)
     _content = {"success": True}
     if error:
@@ -21,21 +22,20 @@
             pass
     _content['sid'] = ''
     _content['operation'] = ''
-    _callback = ''
     try:
         path = request.path
         path = path[path.rfind('/') + 1:]
         _content['operation'] = path
         _content['sid'] = _request.params.get('sid', '')
-        _callback  = _request.params.get('callback', '')
+        rcallback  = _request.params.get('callback', '""')
     except KeyError as e:
         _content['x'] = e
         pass
     if 'operation' in pageargs:
         _content['operation'] = pageargs['operation']
-    _serialized = json.dumps(_content)
-    if len(_callback) > 0:
-        _serialized = "%s(%s)" % (_callback, _serialized)
 
+    common_args = json.dumps(_content)
 %>
-${_serialized}
+%for email in response.get('emails',[]):
+${_callback}("${email}", ${rcallback}, ${common_args})
+%endfor

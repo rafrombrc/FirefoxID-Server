@@ -23,7 +23,7 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) Funkload==1.14 #Currently locked due to a dependency issue in Funkload.
+	$(EZ) Funkload
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
@@ -39,6 +39,7 @@ clean:
 	rm -f  loadtests/stress/stress-bench.xml*
 
 package:
+#todo: convert this to an rpm packager.
 	$(clean)
 	tar -zcvf ../oidserver.tar.gz README.txt Makefile nosetests.xml *.py conf etc loadtests oidserver static pylintrc
 
