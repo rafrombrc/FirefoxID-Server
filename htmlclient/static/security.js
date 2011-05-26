@@ -120,7 +120,8 @@ var security = {};
     if (keyPair === null) {
       throw "No key pair exists for " + email;
     };
-    if (keyPair.pub !== idCertBody.publicKey) {
+    if (keyPair.pub.algorithm !== idCertBody.publicKey.algorithm ||
+        keyPair.pub.keyData !== idCertBody.publicKey.keyData) {
       throw "Public key mismatch";
     };
     keyPair.idCert = JSON.stringify(idCertBody);
