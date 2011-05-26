@@ -9,7 +9,7 @@ describe("Security Public API", function () {
   var testIssuer = 'sasquatch.example.com';
   var now = new Date();
   var oneYearFromNow = new Date(now.getTime());
-  oneYearFromNow.setYear(oneYearFromNow.getYear+1);
+  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear()+1);
 
   beforeEach(function() {
     originalKeyPairsKey = security.KEYPAIRS_KEY;
