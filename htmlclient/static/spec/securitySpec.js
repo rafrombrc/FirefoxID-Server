@@ -25,8 +25,8 @@ describe("Security Public API", function () {
   });
 
   function _generateIdCertBody(pubKey) {
-    return {'id': testEmail, 'valid-until': oneYearFromNow,
-            'issuer': testIssuer, 'publicKey': pubKey}
+    return {"id": testEmail, "valid-until": JSON.stringify(oneYearFromNow),
+            "issuer": testIssuer, "publicKey": pubKey}
   }
 
   function _generateJwt(pubKey, obj) {
