@@ -109,8 +109,9 @@ var security = {};
     // within the cert; throws an error if no key pair exists for the address,
     // or if the public key in the cert doesn't match the public key in the
     // stored key pair
-    var webToken = jwt.WebTokenParser(idCertJwt);
-    var idCertBody = JSON.parse(webToken.objectStr);
+    var webToken = jwt.WebTokenParser.parse(idCertJwt);
+    var objectStr = jwt.base64urldecode(webToken.payloadSegment);
+    var idCertBody = JSON.parse(objectStr);
     // TODO: compare the 'issuer' in the cert w/ the origin for this request?
     // email address is stored as 'id' field in the id cert
     var email = idCertBody.id;
