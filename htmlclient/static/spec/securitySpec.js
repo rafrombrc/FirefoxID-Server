@@ -60,9 +60,8 @@ describe("Security Public API", function () {
     var idCertJwt = _generateJwt(pubKey, idCertBody);
     expect('idCert' in keyPair).toBeFalsy();
     security.storeIdCert(idCertJwt);
-    expect('idCert' in keyPair).toBeTruthy();
     keyPair = security.getKeyPairForEmail(testEmail);
     expect('idCert' in keyPair).toBeTruthy();
-    expect(keyPair.idCert).toEqual(idCertBody);
+    expect(keyPair.idCert).toEqual(JSON.stringify(idCertBody));
   });
 });
