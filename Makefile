@@ -27,6 +27,7 @@ build:
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
+	$(EZ) rsa
 	$(EZ) Beaker
 	$(EZ) Mako
 	$(EZ) python_ldap

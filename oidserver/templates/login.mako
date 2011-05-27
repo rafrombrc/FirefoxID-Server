@@ -29,6 +29,7 @@
 %if len(error) > 0:
  <meta name="error" content="${error}" />
 %endif
+
  <link rel="stylesheet" type="text/css" href="/s/style.css" />
  </head>
  <body>

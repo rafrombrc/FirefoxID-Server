@@ -39,18 +39,18 @@ We run the package via nginx, although there's no requirement for deployment.
 
 some additional optional packages
     python-2.6-dev
-    python-2.6-profiler
-    redis-server  (v.2.0.4 +)
-    python-redis (or easy_install redis)
-    python-ldap
-    python-openid
-    gnuplot (for bench reports)
+    python-2.6-profiler         (required for profile testing)
+    gnuplot                     (for profile bench reports)
     python-gnuplot
+    redis-server [v.2.0.4 +]    (alt. storage)
+    python-redis                (or easy_install redis)
+    mongodb
+    pymongo     
+    python-ldap                 (if using LDAP)
     libsasl2-dev
     libldap-dev
     libssl-dev
-    nginx
-    mongodb
+    mysql-devel                 (required for some installs using LDAP)
 
 via the virtualenv easyinstall: 
     gunicorn
