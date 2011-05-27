@@ -91,7 +91,7 @@ class JWS (Object):
             if header.get('alg', 'NONE') not in self._decode:
                 raise (JWSException("Unsupported decoding method specified"))
             decrypt = self._decode.get(header['alg'])
-            signature = ## TODO Finish
+            signature = ## TODO Finish this, add fixed jws encode/decode to main code path
         except ValueError:
             raise (JWSException("JWS has invalid format"))
 
