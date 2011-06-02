@@ -79,7 +79,7 @@
     },
 
     registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
-      security.storeIdCertForEmail(certJwt);
+      security.storeIdCert(certJwt);
     },
 
     getVerifiedEmail: function getVerifiedEmail(callback) {
