@@ -23,7 +23,7 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) Funkload
+	$(EZ) Funkload==1.14
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
