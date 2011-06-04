@@ -68,18 +68,115 @@
     }
   }
 
+  // TODO: err msg if no local storage support
+  var localStorage = window['localStorage'];
+
+  function _setStorage(key, value) {
+    var fullKey = security.ID_KEY_PREFIX + '.' + key;
+    localStorage[fullKey] = value;
+  }
+
+  function _getStorage(key) {
+    var fullKey = security.ID_KEY_PREFIX + '.' + key;
+    var value = localStorage[fullKey];
+    // normalize local storage misses to a null return
+    if (typeof(value) === "undefined") {
+      value = null;
+    };
+    return value;
+  }
+
+  function _getCertsObject() {
+    // retrieve and deserialize id certificates object, or return empty object
+    // if it doesn't exist
+    var certs = _getStorage(security.CERTS_KEY);
+    if (certs === null) {
+      certs = {};
+    } else {
+      certs = JSON.parse(certs);
+    };
+    return certs;
+  }
+
+  function _setCertsObject(certs) {
+    // serialize and store the id certs object
+    _setStorage(security.CERTS_KEY, JSON.stringify(certs));
+  }
+
+  function _getCertRecord(email) {
+    // fetches id cert record from local storage, may return null
+
+    // top level `certs` object contains all id cert records for the current
+    // origin, keyed by email address
+    var certs = _getCertsObject();
+    var certRecord = certs[email];
+    if (typeof(certRecord) === "undefined") {
+      return null;
+    };
+
+    // TODO: clarify cert format
+    if (typeof(certRecord.publicKey) === "undefined" ||
+        typeof(certRecord.privateKey) === "undefined") {
+      // invalid key pair, throw it away
+      return null;
+    };
+    return certRecord;
+  }
+
+  function _setCertRecord(email, certRecord) {
+    // stores an id cert record to local storage, keyed by email address;
+    // overwrites any pre-existing cert records stored for the same address
+    var certs = _getCertsObject();
+    certs[email] = certRecord;
+    _setCertsObject(certs);
+  }
+
   log("Swizzling navigator.id.");
   navigator.id = {
     isInjected: true,    // Differentiate from a built-in object.
     unhook: null,        // This gets built later, once we know what to unhook!
 
     registerVerifiedEmail: function registerVerifiedEmail(email, callback) {
-      var keyPair = security.getKeyPairForEmail(email);
+      var certRecord = _getCertRecord(email);
+      if (certRecord !== null) {
+        var cert = certRecord.cert;
+        if (cert.exp /// XXX STOPPED HERE
+      };
+      if (certRecord === null) {
+        // TODO: "please wait" UI
+        var keyPair = _generateKeyPair();
+        certRecord = {'email': email,
+                      'issuer': document.domain,
+                      'publicKey': keyPair.publicKey,
+                      'privateKey': keyPair.privateKey
+                     }
+        _setCertRecord(email, certRecord);
+      };
       callback(email, keyPair.pub);
     },
 
     registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
-      security.storeIdCert(certJwt);
+      // expects identity certificate JWT (Javascript Web Token).  parses the
+      // JWT, fetches the cert record for the id cert's email address, and
+      // stores the cert in the cert record.  throws an error if no cert record
+      // exists for the address, or if the public key in the cert doesn't match
+      // the public key in the stored key pair
+      var webToken = jwt.WebTokenParser.parse(certJwt);
+      var objectStr = jwt.base64urldecode(webToken.payloadSegment);
+      var cert = JSON.parse(objectStr);
+      // TODO: compare the 'issuer' in the cert w/ the origin for this request?
+      // email address is stored as 'id' field in the id cert
+      var email = cert.id;
+      var certPubKey = cert.publicKey;
+      var certRecord = _getCertRecord(email);
+      if (certRecord === null) {
+        throw "No ID certificate record exists for " + email;
+      };
+      if (JSON.stringify(certRecord.publicKey) != JSON.stringify(cert.publicKey)) {
+        throw "Public key mismatch";
+      };
+      certRecord.cert = cert;
+      _setCertRecord(email, certRecord);
     },
 
     getVerifiedEmail: function getVerifiedEmail(callback) {
