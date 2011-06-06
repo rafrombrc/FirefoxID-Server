@@ -140,7 +140,16 @@
       var certRecord = _getCertRecord(email);
       if (certRecord !== null) {
         var cert = certRecord.cert;
-        if (cert.exp /// XXX STOPPED HERE
+        var now = new Date();
+        if (cert.exp < now.getTime()/1000) {
+          certRecord = null;
+        } else if (certRecord.iss != document.location.hostname) {
+          // XXX: is this actually correct?
+          certRecord = null;
+        } else {
+          // cert is valid, invoke callback w/ `null` argument as per spec
+          callback(null, null);
+        };
       };
       if (certRecord === null) {
         // TODO: "please wait" UI
