@@ -185,6 +185,7 @@
         throw "Public key mismatch";
       };
       certRecord.cert = cert;
+      certRecord.certUpdateUrl = updateUrl;
       _setCertRecord(email, certRecord);
     },
 
