@@ -182,12 +182,12 @@
       // TODO: compare the 'issuer' in the cert w/ the origin for this request?
       // email address is stored as 'id' field in the id cert
       var email = cert.id;
-      var certPubKey = cert.publicKey;
+      var certPubKey = cert['moz-vep-publicKey'];
       var certRecord = _getCertRecord(email);
       if (certRecord === null) {
         throw "No ID certificate record exists for " + email;
       };
-      if (JSON.stringify(certRecord.publicKey) != JSON.stringify(cert.publicKey)) {
+      if (JSON.stringify(certRecord.publicKey) != JSON.stringify(certPubKey)) {
         throw "Public key mismatch";
       };
       certRecord.cert = cert;
