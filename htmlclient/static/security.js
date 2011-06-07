@@ -38,8 +38,6 @@ var security = {};
 
 (function() {
   // public vars
-  security.ID_KEY_PREFIX = 'vep.id';
-  security.CERTS = security.ID_KEY_PREFIX + '.certs';
   security.RSA_BITS = 1024;
   security.RSA_EXP = "10001";
 

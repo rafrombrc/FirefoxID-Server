@@ -70,6 +70,9 @@
 
   // TODO: err msg if no local storage support
   var localStorage = window['localStorage'];
+  var VEP_KEY_PREFIX = 'moz.vep';
+  var CERTS_KEY = 'certs';
+  var AUD_KEY = 'audiences';
 
   function _setStorage(key, value) {
     var fullKey = security.ID_KEY_PREFIX + '.' + key;
