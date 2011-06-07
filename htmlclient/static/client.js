@@ -135,6 +135,20 @@
     _storeObject(CERTS_KEY, certs);
   }
 
+  function _getIdForAudience(audience) {
+    var audiences = _getStoredObject(AUD_KEY);
+    var audRecord = audiences[audience];
+    if (typeof(audRecord) === "undefined") {
+      // no previous id provided for this audience, user must specify
+      // XXX: TODO
+    };
+    
+  }
+
+  function _getCertRecordForAudience(audience) {
+    /* return a valid id certificate for the id (i.e. email address) associated
+    w/ the specified audience, if possible */
+    audienceEmail = _getIdForAudience(audience);
   }
 
   log("Swizzling navigator.id.");
@@ -195,7 +209,14 @@
       _setCertRecord(email, certRecord);
     },
 
-    getVerifiedEmail: function getVerifiedEmail(callback) {
+    getVerifiedEmail: function getVerifiedEmail() {
+      var audience = document.location.hostname;
+      var certRecord = _getCertRecordForAudience(audience);
+      if (certRecord === null) {
+        // TODO
+      };
+      var assertion = _generateAssertion(certRecord);
+      navigator.id.onVerifiedEmail(assertion);
     }
   }
 })();
