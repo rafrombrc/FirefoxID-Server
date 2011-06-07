@@ -89,29 +89,30 @@
     return value;
   }
 
-  function _getCertsObject() {
-    // retrieve and deserialize id certificates object, or return empty object
-    // if it doesn't exist
-    var certs = _getStorage(security.CERTS_KEY);
-    if (certs === null) {
-      certs = {};
+  function _getStoredObject(key) {
+    /* Fetch JSON from local storage stored under the specified key (plus our
+    VEP prefix), deserialize, and return the resulting object.  Return empty
+    object if specified key doesn't exist. */
+    var obj = _getStorage(key);
+    if (obj === null) {
+      obj = {};
     } else {
-      certs = JSON.parse(certs);
+      obj = JSON.parse(obj);
     };
-    return certs;
+    return obj;
   }
 
-  function _setCertsObject(certs) {
-    // serialize and store the id certs object
-    _setStorage(security.CERTS_KEY, JSON.stringify(certs));
+  function _storeObject(key, obj) {
+    /* Serialize and store the specified object in local storage. */
+    _setStorage(key, JSON.stringify(obj));
   }
 
   function _getCertRecord(email) {
-    // fetches id cert record from local storage, may return null
+    /* fetches id cert record from local storage, may return null */
 
     // top level `certs` object contains all id cert records for the current
     // origin, keyed by email address
-    var certs = _getCertsObject();
+    var certs = _getStoredObject(CERTS_KEY);
     var certRecord = certs[email];
     if (typeof(certRecord) === "undefined") {
       return null;
@@ -127,11 +128,13 @@
   }
 
   function _setCertRecord(email, certRecord) {
-    // stores an id cert record to local storage, keyed by email address;
-    // overwrites any pre-existing cert records stored for the same address
-    var certs = _getCertsObject();
+    /* stores an id cert record to local storage, keyed by email address;
+    overwrites any pre-existing cert records stored for the same address */
+    var certs = _getStoredObject(CERTS_KEY);
     certs[email] = certRecord;
-    _setCertsObject(certs);
+    _storeObject(CERTS_KEY, certs);
+  }
+
   }
 
   log("Swizzling navigator.id.");
