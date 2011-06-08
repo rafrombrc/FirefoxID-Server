@@ -215,14 +215,15 @@
     if (!clientApi[message.operation]) {
       throw('Undefined VEP Client API call: ' + message.operation);
     };
-    result = clientApi[message.operation](message.args);
-    if (message.responseNeeded) {
-      // send the result as a postMessage back to the original window
-      send(event.source, result, origin(event));
-    }
+    var result = clientApi[message.operation](message.args);
+    // construct the return message
+    return {'success': true,
+            'operation': message.operation,
+            'result': result};
   }
 
   function handlePostMessage(event) {
+    // First do some sanity checking.
     if (!origin(event)) {
       log("Rejecting message with null origin.");
       return;
@@ -235,12 +236,24 @@
       log("Malformed JSON message: ignoring.");
       return;
     };
-    // Hooray! Valid origin and JSON body.
+
+    // Hooray! Valid origin and JSON body.  Try to delegate.
+    var postResponse;
+    var error = false;
     try {
-      receive(event, message);
+      postResponse = receive(event, message);
     } catch (ex) {
       // Error was raised, notify postMessage caller
+      error = true;
+      postResponse = {'success': false,
+                      'operation': message.operation,
+                      'error': ex};
+      send(event.source, postResponse, origin(event));
     };
+    if (!error && message.responseNeeded) {
+      // send the result as a postMessage back to the original window
+      send(event.source, postResponse, origin(event));
+    }
   }
 
 })();
