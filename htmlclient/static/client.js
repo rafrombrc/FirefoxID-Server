@@ -201,6 +201,13 @@
       console.log("VEPClient: " + m);
   }
 
+  function send(dest, message, origin) {
+    if (!origin)
+      throw "Refusing to send to open origin.";
+    log("Sending message to origin " + JSON.stringify(origin));
+    dest.postMessage(JSON.stringify(message), origin);
+  }
+
   function receive(event, message) {
     if (!message.operation || !message.args) {
       throw('Malformed VEP Client postMessage request');
