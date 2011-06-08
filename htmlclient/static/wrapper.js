@@ -72,10 +72,25 @@
     }
   }
 
+  var identityOrigin   = "https://localhost";   //CHANGE HOST
+
+  // We only ever send messages to the identity service, so we use it
+  // as the origin here.
+  function send(message) {
+    var iframe           = document.createElement("iframe");
+    iframe.style.display = "none";
+    iframe.src           = identityOrigin + "/s/vep_client_iframe.html";
+    iframe.contentWindow.postMessage(JSON.stringify(message), identityOrigin);
+  }
+
+
   log("Swizzling navigator.id.");
   navigator.id = {
     isInjected: true,    // Differentiate from a built-in object.
     unhook: null,        // This gets built later, once we know what to unhook!
+
+    registerVerifiedEmail: function registerVerifiedEmail(email, callback) {
+    },
 
     // The primary interface function. Do everything necessary to retrieve the
     // user's verified email, including creating popups. Calls 'callback'
@@ -94,17 +109,6 @@
     getVerifiedEmail: function getVerifiedEmail(callback) {
       var popup;                     // Window handle of our popup.
       var popupRequestMessage;       // Used to send replies from the popup.
-
-      var identityOrigin   = "https://localhost";   //CHANGE HOST
-      var iframe           = document.createElement("iframe");
-      iframe.style.display = "none";
-      iframe.src           = identityOrigin + "/s/html/service_iframe.html";
-
-      // We only ever send messages to the identity service, so we use it
-      // as the origin here.
-      function send(message) {
-        iframe.contentWindow.postMessage(JSON.stringify(message), identityOrigin);
-      }
 
       function handlePopup(message) {
         var popupFeatures = "scrollbars=yes" +
