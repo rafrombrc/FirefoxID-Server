@@ -46,28 +46,9 @@
  *
  */
 
+var vepclient = {};
+
 (function() {
-  function log(m) {
-    if (console.log)
-      console.log("navigator.id: " + m);
-  }
-
-  // Don't do anything if the browser provides its own navigator.id
-  // implementation. If we already injected one here -- typically the case if
-  // you reload the page -- then unhook it and start from scratch.
-  // This avoids errors like "attempt to run compile-and-go script on a cleared
-  // scope".
-  if (navigator.id) {
-    if (navigator.id.isInjected) {
-      // Remove the existing object and its handlers.
-      log("Unhooking existing navigator.id.");
-      navigator.id.unhook();
-    } else {
-      log("Not swizzling.");
-      return;
-    }
-  }
-
   // TODO: err msg if no local storage support
   var localStorage = window['localStorage'];
   var VEP_KEY_PREFIX = 'moz.vep';
@@ -142,7 +123,6 @@
       // no previous id provided for this audience, user must specify
       // XXX: TODO
     };
-    
   }
 
   function _getCertRecordForAudience(audience) {
@@ -151,72 +131,66 @@
     audienceEmail = _getIdForAudience(audience);
   }
 
-  log("Swizzling navigator.id.");
-  navigator.id = {
-    isInjected: true,    // Differentiate from a built-in object.
-    unhook: null,        // This gets built later, once we know what to unhook!
-
-    registerVerifiedEmail: function registerVerifiedEmail(email, callback) {
-      var certRecord = _getCertRecord(email);
-      if (certRecord !== null) {
-        var cert = certRecord.cert;
-        var now = new Date();
-        if (cert.exp < now.getTime()/1000) {
-          certRecord = null;
-        } else if (certRecord.iss != document.location.hostname) {
-          // XXX: is this actually correct?
-          certRecord = null;
-        } else {
-          // cert is valid, invoke callback w/ `null` argument as per spec
-          callback(null, null);
-        };
+  function registerVerifiedEmail(email, callback) {
+    var certRecord = _getCertRecord(email);
+    if (certRecord !== null) {
+      var cert = certRecord.cert;
+      var now = new Date();
+      if (cert.exp < now.getTime()/1000) {
+        certRecord = null;
+      } else if (certRecord.iss != document.location.hostname) {
+        // XXX: is this actually correct?
+        certRecord = null;
+      } else {
+        // cert is valid, invoke callback w/ `null` argument as per spec
+        callback(null, null);
       };
-      if (certRecord === null) {
-        // TODO: "please wait" UI
-        var keyPair = _generateKeyPair();
-        certRecord = {'email': email,
-                      'issuer': document.domain,
-                      'publicKey': keyPair.publicKey,
-                      'privateKey': keyPair.privateKey
-                     }
-        _setCertRecord(email, certRecord);
-      };
-      callback(email, keyPair.pub);
-    },
-
-    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
-      // expects identity certificate JWT (Javascript Web Token).  parses the
-      // JWT, fetches the cert record for the id cert's email address, and
-      // stores the cert in the cert record.  throws an error if no cert record
-      // exists for the address, or if the public key in the cert doesn't match
-      // the public key in the stored key pair
-      var webToken = jwt.WebTokenParser.parse(certJwt);
-      var objectStr = jwt.base64urldecode(webToken.payloadSegment);
-      var cert = JSON.parse(objectStr);
-      // TODO: compare the 'issuer' in the cert w/ the origin for this request?
-      // email address is stored as 'id' field in the id cert
-      var email = cert.id;
-      var certPubKey = cert['moz-vep-publicKey'];
-      var certRecord = _getCertRecord(email);
-      if (certRecord === null) {
-        throw "No ID certificate record exists for " + email;
-      };
-      if (JSON.stringify(certRecord.publicKey) != JSON.stringify(certPubKey)) {
-        throw "Public key mismatch";
-      };
-      certRecord.cert = cert;
-      certRecord.certUpdateUrl = updateUrl;
+    };
+    if (certRecord === null) {
+      // TODO: "please wait" UI
+      var keyPair = _generateKeyPair();
+      certRecord = {'email': email,
+                    'issuer': document.domain,
+                    'publicKey': keyPair.publicKey,
+                    'privateKey': keyPair.privateKey
+                   }
       _setCertRecord(email, certRecord);
-    },
+    };
+    callback(email, keyPair.pub);
+  }
 
-    getVerifiedEmail: function getVerifiedEmail() {
-      var audience = document.location.hostname;
-      var certRecord = _getCertRecordForAudience(audience);
-      if (certRecord === null) {
-        // TODO
-      };
-      var assertion = _generateAssertion(certRecord);
-      navigator.id.onVerifiedEmail(assertion);
-    }
+  function registerVerifiedEmailCertificate(certJwt, updateUrl) {
+    // expects identity certificate JWT (Javascript Web Token).  parses the
+    // JWT, fetches the cert record for the id cert's email address, and
+    // stores the cert in the cert record.  throws an error if no cert record
+    // exists for the address, or if the public key in the cert doesn't match
+    // the public key in the stored key pair
+    var webToken = jwt.WebTokenParser.parse(certJwt);
+    var objectStr = jwt.base64urldecode(webToken.payloadSegment);
+    var cert = JSON.parse(objectStr);
+    // TODO: compare the 'issuer' in the cert w/ the origin for this request?
+    // email address is stored as 'id' field in the id cert
+    var email = cert.id;
+    var certPubKey = cert['moz-vep-publicKey'];
+    var certRecord = _getCertRecord(email);
+    if (certRecord === null) {
+      throw "No ID certificate record exists for " + email;
+    };
+    if (JSON.stringify(certRecord.publicKey) != JSON.stringify(certPubKey)) {
+      throw "Public key mismatch";
+    };
+    certRecord.cert = cert;
+    certRecord.certUpdateUrl = updateUrl;
+    _setCertRecord(email, certRecord);
+  }
+
+  function getVerifiedEmail() {
+    var audience = document.location.hostname;
+    var certRecord = _getCertRecordForAudience(audience);
+    if (certRecord === null) {
+      // TODO
+    };
+    var assertion = _generateAssertion(certRecord);
+    navigator.id.onVerifiedEmail(assertion);
   }
 })();
