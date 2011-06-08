@@ -194,32 +194,32 @@
     }
   };
 
-  /* postMessage marshalling */
+  /* postMessage handling and reponding */
 
-  // I don't know why the origin sometimes arrives as the string "null"
-  // rather than a real null, but there we are.
-  function origin(event) {
-    return (event.origin == "null") ? null : event.origin;
+  function log(m) {
+    if (console.log)
+      console.log("VEPClient: " + m);
   }
 
   function receive(event, message) {
-      var callback = this.mailbox(message);
-      if (callback) {
-        log("Got reply on mailbox " + message.mailbox + ".");
-        delete this.mailboxes[message.mailbox];
-        callback(m, message);
-      }
-      else {
-        this.defaultHandler(m, message);
-      }
+    if (!message.operation || !message.args) {
+      throw('Malformed VEP Client postMessage request');
+    };
+    if (!clientApi[message.operation]) {
+      throw('Undefined VEP Client API call: ' + message.operation);
+    };
+    result = clientApi[message.operation](message.args);
+    if (message.responseNeeded) {
+      // send the result as a postMessage back to the original window
+      send(event.source, result, origin(event));
     }
+  }
 
   function handlePostMessage(event) {
     if (!origin(event)) {
       log("Rejecting message with null origin.");
       return;
-    }
-
+    };
     var message;
     try {
       message = JSON.parse(event.data);
@@ -227,10 +227,13 @@
       // Drop it on the floor.
       log("Malformed JSON message: ignoring.");
       return;
-    }
-
+    };
     // Hooray! Valid origin and JSON body.
-    receive(event, message);
-  },
+    try {
+      receive(event, message);
+    } catch (ex) {
+      // Error was raised, notify postMessage caller
+    };
+  }
 
 })();
