@@ -46,8 +46,6 @@
  *
  */
 
-var vepclient = {};
-
 (function() {
   // TODO: err msg if no local storage support
   var localStorage = window['localStorage'];
