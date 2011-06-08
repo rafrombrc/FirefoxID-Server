@@ -193,4 +193,48 @@ var vepclient = {};
     var assertion = _generateAssertion(certRecord);
     navigator.id.onVerifiedEmail(assertion);
   }
+
+  vepclient.registerVerifiedEmail = registerVerifiedEmail;
+  vepclient.registerVerifiedEmailCertificate = registerVerifiedEmailCertificate;
+  vepclient.getVerifiedEmail = getVerifiedEmail;
+
+  /* postMessage marshalling */
+
+  // I don't know why the origin sometimes arrives as the string "null"
+  // rather than a real null, but there we are.
+  function origin(event) {
+    return (event.origin == "null") ? null : event.origin;
+  }
+
+  function receive(event, message) {
+      var callback = this.mailbox(message);
+      if (callback) {
+        log("Got reply on mailbox " + message.mailbox + ".");
+        delete this.mailboxes[message.mailbox];
+        callback(m, message);
+      }
+      else {
+        this.defaultHandler(m, message);
+      }
+    }
+
+  function handlePostMessage(event) {
+    if (!origin(event)) {
+      log("Rejecting message with null origin.");
+      return;
+    }
+
+    var message;
+    try {
+      message = JSON.parse(event.data);
+    } catch (ex) {
+      // Drop it on the floor.
+      log("Malformed JSON message: ignoring.");
+      return;
+    }
+
+    // Hooray! Valid origin and JSON body.
+    receive(event, message);
+  },
+
 })();
