@@ -189,7 +189,7 @@
       _setCertRecord(email, certRecord);
     },
 
-    getVerifiedEmail: function getVerifiedEmail() {
+    getVerifiedEmail: function getVerifiedEmail(args) {
       var audience = document.location.hostname;
       var certRecord = _getCertRecordForAudience(audience);
       if (certRecord === null) {
