@@ -254,10 +254,12 @@
                       'error': ex};
       send(event.source, postResponse, origin(event));
     };
-    if (!error && message.responseNeeded) {
-      // send the result as a postMessage back to the original window
+    if (!error && message.mailbox) {
+      // if the message has a mailbox attribute then the sender is expecting a
+      // response; send the result as a postMessage back to the original window
+      postResponse.mailbox = message.mailbox;
       send(event.source, postResponse, origin(event));
-    }
+    };
   }
 
 })();

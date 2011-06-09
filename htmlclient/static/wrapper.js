@@ -73,6 +73,39 @@
   }
 
   var identityOrigin   = "https://localhost";   //CHANGE HOST
+  var mailboxes = {};
+
+  var newMailbox = function() {
+    var i = 0;
+    return function newMailbox() {
+      return 'm' + i++;
+    };
+  }();
+
+  function mailbox(message) {
+    if (!message.mailbox) {
+      return null;
+    };
+    return mailboxes[message.mailbox];
+  }
+
+  function handlePostMessage(event) {
+    log("Origin: " + event.origin + "\n");
+    log("Wrapper received: " + event.data + "\n");
+
+    if (event.origin != identityOrigin) {
+      log("Rejecting message with origin " + event.origin);
+      return;
+    };
+    var message = JSON.parse(event.data);
+    if (!message.operation) {
+      throw('Malformed VEP Client wrapper postMessage request');
+    };
+    var handler = mailbox(message);
+    if (handler) {
+      handler(message.result);
+    };
+  }
 
   // We only ever send messages to the identity service, so we use it
   // as the origin here.
@@ -83,6 +116,13 @@
     iframe.contentWindow.postMessage(JSON.stringify(message), identityOrigin);
   }
 
+  function sendExpectingReply(message, callback) {
+    if (!message.mailbox) {
+      message.mailbox = newMailbox();
+    };
+    mailboxes[message.mailbox] = callback;
+    send(message);
+  }
 
   log("Swizzling navigator.id.");
   navigator.id = {
@@ -90,12 +130,14 @@
     unhook: null,        // This gets built later, once we know what to unhook!
 
     registerVerifiedEmail: function registerVerifiedEmail(email, callback) {
+      var message = {'operation': 'registerVerifiedEmail',
+                     'args': {'email': email}};
+      function finishRegisterVerifiedEmail(result) {
+        callback(result.publicKey);
+      }
+      sendExpectingReply(message, finishRegisterVerifiedEmail);
     },
 
-    // The primary interface function. Do everything necessary to retrieve the
-    // user's verified email, including creating popups. Calls 'callback'
-    // with the return message, which looks like this:
-    //
     //   {success: true,
     //    operation: "getVerifiedEmail",
     //    result: "user@domain.com"}
@@ -141,42 +183,6 @@
         send(pm);
       }
 
-      function handlePost(m) {
-        log("Origin: " + m.origin + "\n");
-        log("Wrapper received: " + m.deta + "\n");
-
-        if (m.origin != identityOrigin) {
-          log("Rejecting message with origin " + m.origin);
-          return;
-        }
-
-        var message = JSON.parse(m.data);
-        switch (message.operation) {
-
-          // Comes from the iframe. Call the callback.
-          case "getVerifiedEmail":
-            callback(message);
-            break;
-
-          // "Please create a popup." Comes from the service.
-          case "popup":
-            handlePopup(message);
-            break;
-
-          case "closePopup":
-            handleClosePopup(message);
-            break;
-
-          // Login popup did its work.
-          case "login":
-            handleLoginResponse(message);
-            break;
-
-          default:
-            throw "Unknown operation.";
-            break;
-        }
-      }
 
       // This is only a named function so that we can unhook it later.
       function doPost() {
