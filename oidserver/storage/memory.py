@@ -29,6 +29,20 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
             addr_info['uid'] = uid
         return addr_info
 
+    def check_user(self, uid):
+        return uid in self._user_db
+
+    def create_user(self, uid, email, base = None, **kw):
+        if base is None:
+            base = {}
+        user_record = base
+        user_record['uid'] = uid
+        user_record['emails'] = {}
+        user_record['primary'] = email
+        self._user_db[uid] = user_record
+        return self._user_db[uid]
+
+
     def get_user_info(self, uid):
         return self._user_db.get(uid, None)
 
@@ -43,7 +57,6 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                 continue
             list.append(addr)
         return list
-
 
     def set_address_info(self, uid, email_address, info):
         info = self.get_user_info(uid)

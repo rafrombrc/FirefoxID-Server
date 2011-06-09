@@ -33,6 +33,7 @@ simple to determine the corresponding package names for your system:
     or
         libsasl2-dev
         libssl-dev 
+    libcurl3-dev
 
 We run the package via nginx, although there's no requirement for deployment.
     nginx

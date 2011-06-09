@@ -34,11 +34,14 @@
  *
  * ***** END LICENSE BLOCK ***** """
 
+from M2Crypto import RSA, BIO, ASN1
+from hashlib import sha256, sha384, sha512
 from oidserver import logger
 
 import base64
+import hmac
 import json
-import rsa
+#import pycurl
 
 
 class JWSException (Exception):
@@ -50,51 +53,188 @@ class JWSException (Exception):
         return repr(self.value)
 
 
-class JWS (Object):
+class JWS:
     _header = None      # header information
     _crypto = None      # usually the signature
     _claim = None       # the payload of the JWS
-    _config = None      # App specific configuration values
+    _config = {}        # App specific configuration values
 
-    _encode = {'HS256': self._encode_HS256,
-               'RS256': self._enode_RS256,
-               'NONE':  self._encode_NONE}
-    _decode = {'HS256': self._decode_HS256,
-               'RS256': self._decode_HS256,
-               'NONE':  self._decode_NONE}
 
     def __init__(self, config = None, **kw):
         if config:
             self._config = config
+        else:
+            config = {}
+        self._sign = {'HS': self._sign_HS,
+                 'RS': self._sign_RS,
+                 'NO':  self._sign_NONE}
+        self._verify = {'HS': self._verify_HS,
+                   'RS': self._verify_RS,
+                   'NO':  self._verify_NONE}
 
-        return self
-
-    def encode(self, payload, header = None, **kw):
+    def sign(self, payload, header = None, alg = None, **kw):
         if payload is None:
             raise (JWSException("Cannot encode empty payload"))
-        header = self.header()
-        if header.get('alg', 'NONE') not in self._encode:
-            raise (JWSException("Unsupported encoding method specified"))
-        crypt = self._encode.get(header['alg'])
+        header = self.header(alg = alg)
+        if alg is None:
+            alg = header.get('alg', 'NONE')
+        try:
+            signer = self._sign.get(alg[:2].upper())
+        except KeyError, ex:
+            logger.error("Invalid JWS Sign method specified %s", str(ex))
+            raise(JWSException("Unsupported encoding method specified"))
         header_str = base64.urlsafe_b64encode(json.dumps(header))
         payload_str = base64.urlsafe_b64encode(json.dumps(payload))
         sbs = "%s.%s" % (header_str, payload_str)
-        signature = crypt(header, sbs)
-        return "%s.%s" % (sbs, signature)
+        signed = signer(alg, header, sbs)
+        if signed:
+            return signed
+        else:
+            return sbs
 
-    def decode(self, jws, **kw):
-        if jws is None:
-            raise (JWSException("Cannot decode empty JWS"))
+    def parse(self, jws, **kw):
+        if not jws:
+            raise(JWSException("Cannot verify empty JWS"))
+        if self.verify(jws):
+            (head, payload_str, signature) = jws.split('.')
+            payload = json.loads(base64.b64decode(payload_str))
+            return payload
+        else:
+            raise(JWSException("Invalid JWS"))
+
+    def verify(self, jws, alg = None, **kw):
+        if not jws:
+            raise (JWSException("Cannot verify empty JWS"))
         try:
             (header_str, payload_str, signature) = jws.split('.')
-            header = json.loads(base64.urlsafe_b64decode(header_str))
-            if header.get('alg', 'NONE') not in self._decode:
-                raise (JWSException("Unsupported decoding method specified"))
-            decrypt = self._decode.get(header['alg'])
-            signature = ## TODO Finish this, add fixed jws encode/decode to main code path
-        except ValueError:
-            raise (JWSException("JWS has invalid format"))
+            header = json.loads(base64.b64decode(header_str))
+            if alg is None:
+                alg = header.get('alg', 'NONE')
+            try:
+                sigcheck = self._verify.get(alg[:2].upper())
+            except KeyError, ex:
+                logger.error("Invalid JWS Sign method specified %s", str(ex))
+                raise(JWSException("Unsupported encoding method specified"))
+            return sigcheck(alg,
+                            header,
+                            '%s.%s' % (header_str, payload_str),
+                            signature)
+        except ValueError, ex:
+            logger.error("JWS Verification error: %s", ex)
+            raise(JWSException("JWS has invalid format"))
+
+    def _sign_NONE(self, alg, header, sbs):
+        """ No encryption has no encryption.
+            duh.
+        """
+        return None;
+
+    def _get_sha(self, depth):
+        depths = {'256': sha256,
+                 '384': sha384,
+                 '512': sha512}
+        if depth not in depths:
+            raise(JWSException('Invalid Depth specified for HS'))
+        return depths.get(depth)
+
+    def _sign_HS(self, alg, header, sbs):
+        server_secret = self._config.get('jws.server_secret', '')
+        signature = hmac.new(server_secret, sbs,
+                             self._get_sha(alg[2:])).digest()
+        return '%s.%s' % (sbs, base64.urlsafe_b64encode(signature))
+
+    def _sign_RS(self, alg, header, sbs):
+        priv_key_u = self._config.get('jws.rsa_key_path', None)
+        if priv_key_u is None:
+            raise(JWSException("No private key found for RSA signature"))
+        bio = BIO.openfile(priv_key_u)
+        rsa = RSA.load_key_bio(bio)
+        if not rsa.check_key():
+            raise(JWSException("Invalid key specified"))
+        digest = self._get_sha(alg[2:])(sbs).digest()
+        signature = rsa.sign_rsassa_pss(digest)
+        return '%s.%s' % (sbs, base64.urlsafe_b64encode(signature))
+
+    def _verify_NONE(self, alg, header, sbs, signature):
+        """ There's really no way to verify this. """
+        return len(sbs) != 0
+
+    def _verify_HS(self, alg, header, sbs, signature):
+        server_secret = self._config.get('jws.server_secret', '')
+        tsignature = hmac.new(server_secret,
+                              sbs,
+                              self._get_sha(alg[2:])).digest()
+        return (base64.urlsafe_b64encode(tsignature)) == signature
+
+    def _verify_RS(self, alg, header, sbs, signature, testKey=None):
+        #rsa.verify(sbs, pubic_key)
+        ## fetch the public key
+        if testKey:
+            pub = testKey
+        else:
+            pub = fetch_rsa_pub_key(header)
+        rsa = RSA.new_pub_key((pub.get('e'), pub.get('n')))
+        digest = self._get_sha(alg[2:])(sbs).digest()
+        return rsa.verify_rsassa_pss(digest,
+                          base64.urlsafe_b64decode(signature))
+
+    def header(self, header = None, alg = None, **kw):
+        """ return the stored header or generate one from scratch. """
+        if header:
+            self._header = header
+        if self._header:
+            return self._header
+        if not alg:
+            alg = self._config.get('jws.default_alg', 'HS256')
+        self._header = {
+            'alg': alg,
+            'typ': self._config.get('jws.default_typ', 'IDAssertion'),
+            'jku': kw.get('jku', ''),
+            'kid': self._config.get('jws.default_kid', ''),
+            'pem': kw.get('pem', ''),
+            'x5t': self._config.get('jws.default_x5t', ''),
+            'x5u': self._config.get('jws.default_x5u', '')
+
+        }
+        return self._header
 
 
-    def header(self, header, **kw):
-        pass
+def create_rsa_jki_entry(pubKey, keyid=None):
+    keys = json.loads(base64.b64decode(pubKey))
+    vinz = {'algorithm': 'RSA',
+            'modulus': keys.get('n'),
+            'exponent': keys.get('e')}
+    if keyid is not None:
+        vinz['keyid'] = keyid
+    return vinz
+
+##REDO
+def fetch_rsa_pub_key(header, **kw):
+    ## if 'test' defined, use that value for the returned pub key (blech)
+    ## extract the target machine from the header.
+    if keytype is None and keyname is None:
+        raise JWSException('Must specify either keytype or keyname')
+    try:
+        if 'pem' in header and header.get('pem', None):
+            key = base64.urlsafe_b64decode(header.get('pem')).strip()
+            bio = BIO.MemoryBuffer(key)
+            pubbit = RSA.load_key_bio(bio).pub()
+            pub = {
+                'n': int(pubbits[0].encode('hex'), 16),
+                'e': int(pubbits[1].encode('hex'), 16)
+            }
+        elif 'jku' in header and header.get('jku', None):
+            key = header['jku']
+            if key.lower().startswith('data:'):
+                pub = json.loads(key[key.index('base64,')+7:])
+        return pub
+        """
+        pub = {
+            'n': key.get('modulus', None),
+            'e': key.get('exponent', None)
+        }
+        #"""
+        # return pub
+    except (AttributeError, KeyError), ex:
+        logger.error("Internal RSA error: %s" % str(ex))
+        raise(JWSException("Could not extract key"))

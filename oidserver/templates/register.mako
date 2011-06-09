@@ -8,7 +8,7 @@
     error = pageargs.get('error', None)
     _callback = pageargs.get('callback',
         'navigator.id.registerVerifiedEmail')
-    response = pageargs.get('response', None)
+    response = pageargs.get('response', {})
     _content = {"success": True}
     if error:
         _content['success'] = False
@@ -36,6 +36,10 @@
 
     common_args = json.dumps(_content)
 %>
+%if response:
 %for email in response.get('emails',[]):
 ${_callback}("${email}", ${rcallback}, ${common_args})
 %endfor
+%else:
+<!-- no emails -->
+%endif

@@ -1,5 +1,6 @@
 import abc
 from services.pluginreg import PluginRegistry
+from oidserver import logger
 
 
 class OIDStorageException(Exception):
@@ -59,13 +60,16 @@ def get_storage(config, type='oidstorage'):
     try:
         from oidserver.storage._redis import RedisStorage
         OIDStorage.register(RedisStorage)
-    except ImportError:
+    except ImportError, ex:
+        logger.warn("Could not import redis. Has it been installed? [%s]" % ex)
         pass
 
     try:
         from oidserver.storage.mongo import MongoStorage
         OIDStorage.register(MongoStorage)
     except ImportError:
+        logger.warn("Could not import mongo. Has it been installed? [%s]" %
+                    ex)
         pass
 
     return OIDStorage.get_from_config(config)

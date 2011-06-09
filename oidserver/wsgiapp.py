@@ -54,8 +54,8 @@ urls = [
 
         ## Main calls
         # Verify a given email address.
-        ('POST', '/%s/verify_address' % VERSION,
-                'auth', 'verify_address'),
+#        ('POST', '/%s/verify_address' % VERSION,
+#                'auth', 'verify_address'),
         # (validate &) refresh a certificate that we have previously issued
         ('POST', '/%s/refresh_certificate' % VERSION,
                 'auth', 'refresh_certificate'),
@@ -63,7 +63,9 @@ urls = [
         ('GET', '/%s/validate/{validate:[\w]+}' % VERSION,
                 'auth', 'validate'),
         ('POST', '/%s/get_certificate' % VERSION,
-                'auth', 'get_certificate')
+                'auth', 'get_certificate'),
+        ('GET', '/%s/random' % VERSION,
+                'auth', 'random')
         ]
 
 controllers = {'user': UserController,

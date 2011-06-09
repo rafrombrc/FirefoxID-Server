@@ -30,7 +30,9 @@ build:
 	$(EZ) rsa
 	$(EZ) Beaker
 	$(EZ) Mako
+	$(EZ) M2Crypto
 	$(EZ) python_ldap
+	$(EZ) python-cjson
 	$(EZ) gunicorn
 
 clean:
@@ -72,8 +74,11 @@ sa_preflight:
 	$(INSTALL) libsasl2-dev
 	$(INSTALL) libssl-dev
 	$(INSTALL) python-cxx-dev
-	$(INSTALL) libldap2-devi
+	$(INSTALL) libldap2-dev
+	$(INSTALL) openssl-devel
 	$(INSTALL) nginx
+	$(INSTALL) swig
+#	$(INSTALL) curl-devel
 
 # Configure UBUNTU style nginx to point to our config files.
 sa_fixnginx:

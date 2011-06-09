@@ -13,7 +13,7 @@ test_config = {'auth.user': 'good@example.com',
                'auth.pass': 'good',
                'userinfo.uid': 'test_api_1',
                'auth.credentials': 'jrandomperson:password',
-               'oidstorage.backend': 'memory',
+               'oidstorage.backend': 'redis',
                'uidcookiestorage.backend': 'memory',
                'config.target': 'localhost'}
 
