@@ -130,7 +130,11 @@
   }
 
   clientApi = {
-    registerVerifiedEmail: function registerVerifiedEmail(email) {
+    registerVerifiedEmail: function registerVerifiedEmail(args) {
+      var email = args.email;
+      if (!email) {
+        throw('Invalid arguments for registerVerifiedEmail call');
+      };
       var certRecord = _getCertRecord(email);
       if (certRecord !== null) {
         var cert = certRecord.cert;
