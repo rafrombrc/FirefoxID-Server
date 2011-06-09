@@ -263,7 +263,6 @@ class AuthController(BaseController):
         user = storage.get_user_info(uid)
         if not email:
             email = request.params.get('id', None)
-        print response;
         if user is None:
             user = storage.create_user(uid, email)
 
