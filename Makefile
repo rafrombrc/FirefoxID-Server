@@ -23,13 +23,16 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) Funkload==1.14 #Currently locked due to a dependency issue in Funkload.
+	$(EZ) Funkload #==1.14 #Currently locked due to a dependency issue in Funkload.
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
+	$(EZ) rsa
 	$(EZ) Beaker
 	$(EZ) Mako
+	$(EZ) M2Crypto
 	$(EZ) python_ldap
+	$(EZ) python-cjson
 	$(EZ) gunicorn
 
 clean:
@@ -39,6 +42,7 @@ clean:
 	rm -f  loadtests/stress/stress-bench.xml*
 
 package:
+#todo: convert this to an rpm packager.
 	$(clean)
 	tar -zcvf ../oidserver.tar.gz README.txt Makefile nosetests.xml *.py conf etc loadtests oidserver static pylintrc
 
@@ -70,8 +74,11 @@ sa_preflight:
 	$(INSTALL) libsasl2-dev
 	$(INSTALL) libssl-dev
 	$(INSTALL) python-cxx-dev
-	$(INSTALL) libldap2-devi
+	$(INSTALL) libldap2-dev
+	$(INSTALL) openssl-devel
 	$(INSTALL) nginx
+	$(INSTALL) swig
+#	$(INSTALL) curl-devel
 
 # Configure UBUNTU style nginx to point to our config files.
 sa_fixnginx:

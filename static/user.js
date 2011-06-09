@@ -93,7 +93,7 @@
             req.send(postArg);
             resp = JSON.parse(req.responseText);
             if (resp.success){
-
+                /* TODO: Finish long polling */
             }
 
         } catch (ex) {

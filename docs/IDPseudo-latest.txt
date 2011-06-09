@@ -97,6 +97,14 @@ server functions:
         if not checkAudience(certObject, request):
             log(InvalidCert: mis-matched audience)
         return true
+
+    // available to "trusted" clients
+    getEmails(callback, callback)
+        // return list of verified emails for certification to callback
+    
+
+    getCertificate(email, UserAgentPublicKey)
+        // 
 // Private
     _isAddressLocal(email):
         return false
@@ -118,20 +126,13 @@ server functions:
                return VALID_ADDRESS
             else
                 return NEEDS_VALIDATION
-    _genCertificate(email)
-        certificate = {
+    _genCertificate(email, UAPublicKey)
+        _asJWT(certificate = {
             id: email,
             issuer: app.config.get('server.ID'),
             valid-until: _genExpireGMT(app.config.get('server.certificate-TTL')), // in hours
             publicKey: UAPublicKey
-        }
-    _generateAssertion(email):
-        assertion = {
-            nonce: _genNonce(),
-            valid-until: _genExpireGMT(app.config.get('server.assertion-TTL')), // in minutes
-            id: email,
-            certificate: _genCertificate(id = email)
-        }
+        })
         // send the assertion back to the UA
         return "navigator.id.registerVerifiedEmailCertificate(" + asJWT(assertion) +
             "," + CERT_UPDATE_URL +")"
@@ -145,7 +146,7 @@ client functions:
     dbs:
      certDB
         issuer    // who issued the email addr
-        email     // the address used
+        id     // the address used
         pubKey  // public portion of keypair
         privKey   // private portion of keypair
         cert        // IA certification
@@ -170,7 +171,7 @@ client functions:
     navigator.id.registerVerifiedEmail(email, IAcallback)  {
         issuer = postMessage.audience
         keyPair = security.genKey()
-        localstorage.store("insert certDB set ('issuer','pubkey','privkey','email') values (issuer, keyPair.pub, keyPair,priv, email)")
+        localstorage.store("insert certDB set ('issuer','pubkey','privkey','id') values (issuer, keyPair.pub, keyPair,priv, email)")
         IAcallback(email, pubkey); 
     }
     // from IA
