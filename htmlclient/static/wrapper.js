@@ -73,6 +73,9 @@
   }
 
   var identityOrigin   = "https://localhost";   //CHANGE HOST
+  var iframe           = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src           = identityOrigin + "/s/vep_client_iframe.html";
 
   /*
    * Mini postMessage communication framework. Each mailbox represents a
@@ -121,9 +124,6 @@
   // We only ever send messages to the identity service, so we use it
   // as the origin here.
   function send(message) {
-    var iframe           = document.createElement("iframe");
-    iframe.style.display = "none";
-    iframe.src           = identityOrigin + "/s/vep_client_iframe.html";
     iframe.contentWindow.postMessage(JSON.stringify(message), identityOrigin);
   }
 
@@ -222,4 +222,11 @@
       }
     }
   };
+
+  document.body.appendChild(iframe);
+
+  // Send the getVerifiedEmail event as soon as the iframe is loaded.
+  iframe.addEventListener("load", doPost, true);
+  window.addEventListener("message", handlePostMessage, true);  // For replies.
+
 })();
