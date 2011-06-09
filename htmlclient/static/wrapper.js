@@ -103,6 +103,35 @@
     return mailboxes[message.mailbox];
   }
 
+  var popup;
+  var popupRequestMessage;
+
+  var postHandlers = {
+    'popup': function popup(args) {
+      var popupFeatures = "scrollbars=yes" +
+        ",left="   + (args.left   || 80)  +
+        ",top="    + (args.top    || 80)  +
+        ",height=" + (args.height || 475) +
+        ",width="  + (args.width  || 475);
+      log("In popup handler: " + JSON.stringify(args));
+      popup = window.open(args.uri, args.target, popupFeatures);
+      if (!popup) {
+        throw "Verified email fetcher found no popup!";
+      }
+      popupRequestMessage = args;
+      log("Created popup: " + popup);
+    },
+
+    'closePopup': function closePopup(args) {
+      log("In closePopup handler: " + JSON.stringify(args));
+      if (popup) {
+        popup.close();
+      }
+      popup = null;
+      popupRequestMessage = null;
+    }
+  };
+
   function handlePostMessage(event) {
     log("Origin: " + event.origin + "\n");
     log("Wrapper received: " + event.data + "\n");
@@ -115,10 +144,18 @@
     if (!message.operation) {
       throw('Malformed VEP Client wrapper postMessage request');
     };
+    var args;
     var handler = mailbox(message);
     if (handler) {
-      handler(message.result);
+      args = message.result;
+    } else {
+      handler = postHandlers[message.operation];
+      args = message.args;
     };
+    if (!handler) {
+      throw('Unrecognized VEP Client wrapper operation: ' + message.operation);
+    };
+    handler(args);
   }
 
   // We only ever send messages to the identity service, so we use it
