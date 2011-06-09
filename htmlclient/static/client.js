@@ -162,12 +162,14 @@
       return {'email': email, 'publicKey': keyPair.pub};
     },
 
-    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
+    registerVerifiedEmailCertificate: function registerCert(args) {
       // expects identity certificate JWT (Javascript Web Token).  parses the
       // JWT, fetches the cert record for the id cert's email address, and
       // stores the cert in the cert record.  throws an error if no cert record
       // exists for the address, or if the public key in the cert doesn't match
       // the public key in the stored key pair
+      var certJwt = args.certJwt;
+      var updateUrl = args.updateUrl;
       var webToken = jwt.WebTokenParser.parse(certJwt);
       var objectStr = jwt.base64urldecode(webToken.payloadSegment);
       var cert = JSON.parse(objectStr);

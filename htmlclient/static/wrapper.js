@@ -149,30 +149,33 @@
       sendExpectingReply(message, finishRegisterVerifiedEmail);
     },
 
-    getVerifiedEmail: function getVerifiedEmail(callback) {
+    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
+      var message = {'operation': 'registerVerifiedEmailCertificate',
+                     'args': {'certJwt': certJwt,
+                              'updateUrl': updateUrl}};
+      send(message);
     },
 
-      this.unhook = function() {
+    getVerifiedEmail: function getVerifiedEmail() {
+      var message = {'operation': 'getVerifiedEmail',
+                     'args': {}};
+      send(message);
+    },
+
+    unhook: function unhook() {
         // Try our best to do each of these things.
         try {
-          window.removeEventListener("message", handlePost, true);
-        } catch (ex) {}
-        try {
-          iframe.removeEventListener("load", doPost, true);
+          window.removeEventListener("message", handlePostMessage, true);
         } catch (ex) {}
         try {
           document.body.removeChild(iframe);
         } catch (ex) {}
-
         delete navigator.id;
       }
     }
   };
 
   document.body.appendChild(iframe);
-
-  // Send the getVerifiedEmail event as soon as the iframe is loaded.
-  iframe.addEventListener("load", doPost, true);
   window.addEventListener("message", handlePostMessage, true);  // For replies.
 
 })();
