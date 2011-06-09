@@ -53,7 +53,7 @@
 (function() {
   function log(m) {
     if (console.log)
-      console.log("navigator.id: " + m);
+      console.log("VEPClient: " + m);
   }
 
   // Don't do anything if the browser provides its own navigator.id
