@@ -29,6 +29,7 @@
 %if len(error) > 0:
  <meta name="error" content="${error}" />
 %endif
+
  <link rel="stylesheet" type="text/css" href="/s/style.css" />
  </head>
  <body>
@@ -47,8 +48,8 @@
     %endif
     </p>
     <form id="formlogin" action='${login_host}/${VERSION}/login' method='POST'>
-    <p><label for="email">Email</label>
-     <input type="text" name="email"></input></p>
+    <p><label for="id">Email</label>
+     <input type="text" name="id"></input></p>
     <p><label for="password">Password</label>
      <input type="password" name="password"></input>
      <a href="${forgot_url}">I forgot my password</a></p>

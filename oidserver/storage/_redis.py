@@ -1,6 +1,4 @@
-from cPickle import loads, dumps
 from collections import defaultdict
-from datetime import datetime
 from hashlib import sha1
 from oidserver.storage import OIDStorage, OIDStorageException
 from oidserver.storage.oidstoragebase import OIDStorageBase
@@ -11,15 +9,13 @@ from services.util import randchar
 
 import redis
 import time
-
+import cjson
 
 class RedisStorage(OIDStorage):
-    prefix = 'id'
     USER_DB = 'user_'
     VALID_DB = 'validate_'
 
     def __init__(self, host='127.0.0.1', port=6379, database='id', **kw):
-        self.prefix = database
         self._db = redis.Redis(host)
 
     @classmethod
@@ -27,21 +23,43 @@ class RedisStorage(OIDStorage):
         return 'redis'
 
     def get_address_info(self, uid, email_address):
-        addr_info = self._db.get('%s%s' % (self.USER_DB, uid),
-                            {}).get('emails', {}).get(email_address, None)
-        if addr_info is not NOne:
+        user_info = self.get_user_info(uid)
+        if user_info is None:
+            return None
+        addr_info = user_info.get('emails', {}).get(email_address, None)
+        if addr_info is not None:
             addr_info['email'] = email_address
             addr_info['uid'] = uid
         return addr_info
 
+    def check_user(self, uid):
+        return ('%s%s' % (self.USER_DB, uid) in self._db)
+
+    def create_user(self, uid, email, base = None, **kw):
+        if base is None:
+            base = {}
+        user_record = base
+        user_record['uid'] = uid
+        user_record['emails'] = {}
+        user_record['primary'] = email
+        self.set_user_info(uid, user_record)
+        return self.get_user_info(uid)
+
     def get_user_info(self, uid):
-        return loads(self._db.get('%s%s' % (self.USER_DB, uid)))
+        data = self._db.get('%s%s' % (self.USER_DB, uid))
+        if data:
+            return cjson.decode(data)
+        else:
+            return None
 
     def set_user_info(self, uid, info):
-        self._db.set('%s%s' % (self.USER_DB, uid), dumps(info))
+        self._db.set('%s%s' % (self.USER_DB, uid), cjson.encode(info))
 
     def get_addresses(self, uid, filter = None ):
-        addrs = self._db.get('%s%s' % (self.USER_DB, uid), {}).get('emails')
+        user_info = self.get_user_info(uid)
+        if user_info is None:
+            return None
+        addrs = user_info.get('emails')
         if addrs is None:
             return None
         list = []
@@ -61,23 +79,23 @@ class RedisStorage(OIDStorage):
         return self.get_address_info(uid, email_address)
 
     def set_user_info(self, uid, info=None, **kw):
-        self._db.set(uid, dumps(info))
+        self._db.set("%s%s" % (self.USER_DB,uid), cjson.encode(info))
 
     def del_user(self, uid, confirmed = False):
         if confirmed:
-            self._db.delete('%s%s' % (self.USER_DB,uid))
+            self._db.delete('%s%s' % (self.USER_DB, uid))
 
     def add_validation(self, uid, email):
         rtoken = ''.join([randchar() for i in range(26)])
         validation_record = {'uid': uid,
-                             'created': datetime.now(),
+                             'created': time.time(),
                              'email': email}
-        user_info = self._user_db.get(uid,None)
-        if user is None:
+        user_info = self._db.get('%s%s' % (self.USER_DB, uid))
+        if user_info is None:
             logger.error("Could not find user record for uid %s" % uid)
             raise OIDStorageException("uid not found")
         try:
-            user =  loads(user_info)
+            user =  cjson.decode(user_info)
         except (TypeError, EOFError), ex:
             logger.error("Unpickling error %s " % ex)
             raise (OIDStorageException("Storage error"))
@@ -85,8 +103,9 @@ class RedisStorage(OIDStorage):
                 {'created': int(time.time()),
                  'state': 'pending',
                  'conf_code': rtoken}
-        self._db.set('%s%s' % (self.USER_DB,uid), user)
-        self._db.set('validate_%s' % rtoken, validation_record)
+        self.set_user_info(uid, user)
+        self._db.set('%s%s' % (self.VALID_DB,rtoken),
+                     cjson.encode(validation_record))
         return rtoken
 
     def get_validation_token(self, uid, email):
@@ -94,7 +113,7 @@ class RedisStorage(OIDStorage):
         if user_info is None:
             logger.warn('No user information found for uid %s' % uid)
             return None
-        user = loads(user_info)
+        user = cjson.decode(user_info)
         aemail = email.encode('ascii')
         if (aemail in user.get('emails',{}) and
             user['emails'][aemail].get('state', None) == 'pending'):
@@ -107,7 +126,7 @@ class RedisStorage(OIDStorage):
         if user_info is None:
             logger.warn('No user information found for uid %s' % uid)
             return False
-        user = loads(user_info)
+        user = cjson.decode(user_info)
         if (email in user.get('emails', {}) and
             user['emails'][email].get('state', None) == 'pending'):
                 rtoken = user['emails'][email].get('conf_code',None)
@@ -125,24 +144,23 @@ class RedisStorage(OIDStorage):
 
     def check_validation(self, uid, token):
         try:
-            record = {}
-            record_info = self._db.get('%s%s' % (self.VALID_DB, token), None)
+            record = None
+            record_info = self._db.get('%s%s' % (self.VALID_DB, token))
             if record_info is not None:
-                record = loads(record_info)
+                record = cjson.decode(record_info)
                 if record.get('uid') == uid:
                     user = self.get_user_info(record.get('uid'))
                     if user is not None:
+                        import pdb; pdb.set_trace();
                         email = record.get('email')
                         if user['emails'][email].get('state',
                                                      None) == 'pending':
                             user['emails'][email]['state'] = 'verified'
                         if 'conf_code' in user['emails'][email]:
                             del user['emails'][email]['conf_code']
-                        del user['emails'][email]
                         self._db.delete('%s%s', (self.VALID_DB, token))
                     self.set_user_info(uid, user)
-                    return True
+                    return record.get('email')
         except KeyError:
             pass
         return False
-

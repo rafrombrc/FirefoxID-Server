@@ -152,7 +152,6 @@ class TestApi(unittest.TestCase):
         params.update({'id': validEmails[0],
                        'pubkey': self.good_credentials.get('pubKey'),
                        'output': 'html'})
-        import pdb; pdb.set_trace()
         response = self.app.post(path,
                                  params = params,
                                  status = 200)
@@ -170,12 +169,15 @@ class TestApi(unittest.TestCase):
         self.setUp()
         self.purge_db()
         params = self.default_params.copy()
-        params.update(self.good_credentials)
+
+        params.update({'id': self.good_credentials.get('email'),
+                       'password': self.good_credentials.get('password')})
         params.update({'output': 'html'})
         path = '/%s/login' % VERSION
         response = self.app.post(path,
                             params,
-                            status = 302)
+                            status = 302
+                            )
 #        self.failIf(self.user_info.get('pemail') not in response.body)
 
     def skip_login_bad(self):
@@ -220,6 +222,7 @@ class TestApi(unittest.TestCase):
                                  status = 200)
         resp_obj = json.loads(response.body)
         self.failUnless(resp_obj.get('success'))
+        self.failUnless('certificate' in resp_obj)
         self.purge_db()
 
     def test_registered_emails(self):

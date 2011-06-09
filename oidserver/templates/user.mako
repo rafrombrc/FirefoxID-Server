@@ -3,6 +3,8 @@
   from oidserver.util import (text_to_html_filter, url_filter)
   from oidserver import VERSION
 
+  valid = []
+  unver = []
   host = pageargs.get('host', 'localhost')
   login_host = config.get('oid.login_host', 'https://localhost')
   user = pageargs.get('user', 'unknown')
@@ -66,32 +68,44 @@
     </div>
 </%doc>
     <div id="emails">
-    <h2>Additional Emails</h2>
-    % if user_info.get('emails',False):
+    %if user_info.get('emails',False):
+<%
+     for addr in user_info['emails']:
+      email = user_info['emails'].get(addr)
+      if email.get('state', None) == 'pending':
+       unver.append(addr)
+      if email.get('state', None) == 'verified':
+       valid.append(addr)
+
+%>
+    % if valid:
+    <h2>Registered Emails</h2>
     <ul>
-     % for email in user_info.get('emails'):
-      % if email != user_info.get('pemail'):
+     % for email in valid:
     <li>${email}</li>
-      % endif
      % endfor
+     % endif
     </ul>
     %else:
      <p> You must verify at least one email address before you can log into
      sites.</p>
-    %endif
+    % endif
     <form action="${login_host}/${VERSION}/manage_email" method="POST">
     <p><input name="unv" value="" placeholder="Additional Email"/>
     <button class="submit" type="submit" name="act" value="add">Add Email</button></p>
     </form>
-     %if unv_emails:
+     %if unver:
     <div id="unv_emails">
      <h3>Unverified Emails:</h3>
     <table class="user">
     <tr><th>Email</th><th.button></th></tr>
-      %for email in unv_emails.keys():
+      %for email in unver:
       <tr><td>${email|entity}
       <td class="button"><button class="unv validate" value="act=add&unv=${email|u}">Resend</button></td>
-      <td class="button"><button class="unv remove" value="act=del&unv=${email|u}">Forget</button></td>
+      <td class="button">
+      %if email != user_info.get('primary', None):
+      <button class="unv remove" value="act=del&unv=${email|u}">Forget</button></td>
+      %endif
       </tr>
       %endfor
      </table>
@@ -121,5 +135,8 @@
 </div>
 </footer>
 <script type="text/javascript" src="/s/user.js" ></script>
+% if valid:
+<script type="text/javascript" src="${login_host}/1/register"></script>
+% endif
 </body>
 </html>

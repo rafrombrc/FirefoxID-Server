@@ -1,16 +1,15 @@
-from hashlib import  sha256
 from oidserver import logger, VERSION
 from oidserver.controllers import BaseController
+from oidserver.jws import JWS, JWSException
 from oidserver.storage import OIDStorageException
 from oidserver.util import (get_template, text_to_html_filter, url_filter)
-from services.util import extract_username
+from Crypto.Random import random
+from services.util import extract_username, send_email
 from time import time
 from urllib import quote, unquote
 from webob import Response
 from webob.exc import HTTPBadRequest, HTTPFound, HTTPForbidden
 
-import base64
-import hmac
 import json
 import smtplib
 
@@ -42,6 +41,7 @@ class AuthController(BaseController):
     ## public
     def refresh_certificate(self, request, **kw):
         """ Refresh a given's certificate """
+        jws = JWS(config = self.app.config)
         error = None
         response = None
         (content_type, template) = self.get_template_from_request(request)
@@ -50,15 +50,19 @@ class AuthController(BaseController):
         if pub_key is None:
             logger.warn("Request missing pubkey argument")
             raise HTTPBadRequest()
-        cert_info = self.parse_certificate(uid, request)
-        if cert_info is None:
+        try:
+            cert_info = jws.parse(request.params.get('certificate', None))
+            if cert_info is None:
+                raise HTTPBadRequest()
+        except JWSException:
             raise HTTPBadRequest()
         (state, address_info) = self.check_cert(uid, cert_info)
         if not state:
             raise HTTPBadRequest()
         try:
-            response = self.gen_certificate(address_info.get('email'),
-                                            request.params.get('pubkey'))
+            response = {'certificate': self.gen_certificate(
+                        address_info.get('email'),
+                        request.params.get('pubkey'))}
         except OIDStorageException, ose:
             error = self.error_codes.get('INVALID')
             error.reason = str(ose)
@@ -104,7 +108,8 @@ class AuthController(BaseController):
             'issuer': self.app.config.get('auth.issuer', 'UNDEFINED'),
             'publicKey': ua_pub_key
         }
-        return self.as_json_web_token(certificate_info)
+        jws = JWS(config = self.app.config)
+        return jws.sign(certificate_info)
 
     def get_certificate(self, request, **kw):
         response = None
@@ -131,12 +136,24 @@ class AuthController(BaseController):
                     callback = "navigator.id.registerVerifiedEmailCertificate")
         return Response(str(body), content_type = content_type)
 
+    def random(self, request, **kw):
+        """ Return a set of random numbers
+        """
+        rval = result.append(random.getrandbits(random.randint(1,256)))
+        (content_type, template) = self.get_template_from_request(request)
+        body = template.render(request = request,
+                               response = {'random': rval},
+                               config = self.app.config
+                               )
+        return Response(str(body), content_type = content_type)
+
     def verify(self, request, **kw):
         """ Verify an IAR.
         """
         body = ''
+        jws = JWS(config = self.app.config)
         (content_type, template) = self.get_template_from_request(request)
-        if not self.validate_json_web_token(request.params.get('iar', '')):
+        if not jws.verify(request.params.get('iar', '')):
             body = template.render(
                 request = request,
                 config = self.app.config,
@@ -224,6 +241,7 @@ class AuthController(BaseController):
 
             # if this is an email validation, skip to that.
             if 'validate' in request.params:
+                jws = JWS(config = self.app.config)
                 return self.validate(request)
         # Attempt to get the uid.
         if uid is None:
@@ -244,11 +262,18 @@ class AuthController(BaseController):
         # Ok, got a UID, so let's get the user info
         user = storage.get_user_info(uid)
         if not email:
-            email = request.params.get('email', None)
-            if email:
-                self.send_validate_email(uid, email)
-        logger.debug('Sending user to admin page')
-        raise HTTPFound(location = "https:/%s" % quote(email))
+            email = request.params.get('id', None)
+        print response;
+        if user is None:
+            user = storage.create_user(uid, email)
+
+        if email and email not in user.get('emails', []):
+            self.send_validate_email(uid, email)
+        location = "%s/%s" % (self.app.config.get('oid.login_host',
+                                                          'localhost'),
+             quote(email))
+        logger.debug('Sending user to admin page %s' % location)
+        raise HTTPFound(location = location)
 
     def logout(self, request, **kw):
         """ Log a user out of the ID server
@@ -383,7 +408,8 @@ class AuthController(BaseController):
         return Response(str(body), content_type = 'text/html')
 
     def verify_address(self, request, **kw):
-        """ Verify a given address """
+        """ Verify a given address (unused?)
+        """
         ## Only logged in users can play
         uid = self.get_session_uid(request)
         if uid is None:
@@ -402,6 +428,7 @@ class AuthController(BaseController):
                                        self.error_codes.get('LOGIN_ERROR'))
             else:
                 state = address_info.get('state',None)
+
                 if state == 'verified':
                     return self.generate_assertion(email, request)
                 elif address_state == 'pending' or address_state == 'needs validation':
@@ -414,25 +441,6 @@ class AuthController(BaseController):
         return Response(str(body), content_type = content_type)
 
     #Utils
-    def as_json_web_token(self, payload):
-        """ Convert a payload object into a JWT
-        """
-        server_secret = self.app.config.get('auth.server_secret', '')
-        header = {"typ": "JWT", "alg": "HS256"}
-        b64_headers = base64.b64encode(json.dumps(header))
-        b64_payloads = base64.b64encode(json.dumps(payload))
-        sig_base_string = "%s.%s" % (b64_headers, b64_payloads)
-        signature = hmac.new(server_secret, sig_base_string, sha256).digest()
-        b64_sig = base64.b64encode(signature)
-        return "%s.%s.%s" % (b64_headers, b64_payloads, b64_sig)
-
-    def parse_certificate(self, uid, request, acceptible = None, **kw):
-        certificate = request.params.get('certificate', None)
-        if certificate is None:
-            logger.error("No certificate found for refresh")
-            raise None
-        return self.from_json_web_token(certificate)
-
     def check_cert(self, uid, cert_info, acceptible = None):
         address_info = None
         if 'id' not in cert_info:
@@ -451,24 +459,6 @@ class AuthController(BaseController):
                         acceptible)
             return (False, address_info)
         return (True, address_info)
-
-    def from_json_web_token(self, jwt):
-        """ Convert a JWT to a payload
-        """
-        server_secret = self.app.config.get('auth.server_secret','')
-        (jhead, jbody, jsig) = jwt.split('.');
-        header = json.loads(base64.b64decode(jhead))
-        if str(header['alg']).upper() != "HS256":
-            raise AuthException("Unrecognized JWT encoding. Please use HS256")
-        sig_base_string = "%s.%s" % (jhead, jbody)
-        signature = base64.b64encode(hmac.new(server_secret,
-                                              sig_base_string,
-                                              sha256).digest())
-        if signature != jsig:
-            logger.error("JWT has invalid signature. Aborting.")
-            raise AuthException("Invalid JWT signature.")
-        return json.loads(base64.b64decode(jbody))
-
 
     def gen_identity_assertion(self, request, data=None):
         """return the default email
@@ -491,7 +481,8 @@ class AuthController(BaseController):
             }
             if data is not None:
                 identity_assertion['data'] = data
-            return self.as_json_web_token(identity_assertion)
+            jws = JWS(config = self.app.config)
+            return jws.sign(identity_assertion)
         return None
 
     def get_template_from_request(self, request,
@@ -509,6 +500,8 @@ class AuthController(BaseController):
         uid = None
         try:
             uid = self.get_session_uid(request)
+            if not self.app.storage.check_user(uid):
+                return None
         except KeyError:
             pass
         return uid
@@ -516,16 +509,3 @@ class AuthController(BaseController):
     def is_internal(self, request):
         # placeholder function for internal only calls.
         return True
-
-    def validate_json_web_token(self, token):
-        """ Confirm that the given JWT is a properly specified object
-            originating from this domain.
-        """
-        if token is None or len(token) == 0:
-            return False
-        (header, payload, sig) = token.split('.')
-        server_secret = self.app.config.get('auth.server_secret', '')
-        sig_base_string = "%s.%s" % (header, payload)
-        signature = hmac.new(server_secret, sig_base_string, sha256).digest()
-        b64_sig = base64.b64encode(signature)
-        return b64_sig == sig
