@@ -73,6 +73,17 @@
   }
 
   var identityOrigin   = "https://localhost";   //CHANGE HOST
+
+  /*
+   * Mini postMessage communication framework. Each mailbox represents a
+   * callback; when a postMessage containing a `mailbox` value is received that
+   * value is used to fetch and invoke the appropriate callback.
+   *
+   * A utility function, sendExpectingReply, lodges the provided callback in a
+   * (new, if necessary) mailbox and sends the message on.  Note that the other
+   * side must pass this same mailbox value back to this window to complete the
+   * cycle.
+   */
   var mailboxes = {};
 
   var newMailbox = function() {
