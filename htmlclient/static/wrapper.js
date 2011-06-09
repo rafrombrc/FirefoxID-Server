@@ -149,16 +149,13 @@
       sendExpectingReply(message, finishRegisterVerifiedEmail);
     },
 
-    //   {success: true,
-    //    operation: "getVerifiedEmail",
-    //    result: "user@domain.com"}
-    //
-    // or
-    //
-    //   {success: false,
-    //    operation: "getVerifiedEmail",
-    //    error: {"code": 123,
-    //            "reason": "problem"}}
+    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
+      var message = {'operation': 'registerVerifiedEmailCertificate',
+                     'args': {'certJwt': certJwt,
+                              'updateUrl': updateUrl}};
+      send(message);
+    },
+
     getVerifiedEmail: function getVerifiedEmail(callback) {
       var popup;                     // Window handle of our popup.
       var popupRequestMessage;       // Used to send replies from the popup.
@@ -193,7 +190,6 @@
         pm.mailbox = popupRequestMessage.mailbox;
         send(pm);
       }
-
 
       // This is only a named function so that we can unhook it later.
       function doPost() {
