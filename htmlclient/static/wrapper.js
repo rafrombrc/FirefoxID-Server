@@ -149,62 +149,8 @@
       sendExpectingReply(message, finishRegisterVerifiedEmail);
     },
 
-    //   {success: true,
-    //    operation: "getVerifiedEmail",
-    //    result: "user@domain.com"}
-    //
-    // or
-    //
-    //   {success: false,
-    //    operation: "getVerifiedEmail",
-    //    error: {"code": 123,
-    //            "reason": "problem"}}
     getVerifiedEmail: function getVerifiedEmail(callback) {
-      var popup;                     // Window handle of our popup.
-      var popupRequestMessage;       // Used to send replies from the popup.
-
-      function handlePopup(message) {
-        var popupFeatures = "scrollbars=yes" +
-                            ",left="   + (message.left   || 80)  +
-                            ",top="    + (message.top    || 80)  +
-                            ",height=" + (message.height || 475) +
-                            ",width="  + (message.width  || 475);
-
-        log("In handlePopup: " + JSON.stringify(message));
-        popup = window.open(message.uri, message.target, popupFeatures);
-        if (!popup) {
-          throw "Verified email fetcher found no popup!";
-        }
-        popupRequestMessage = message;
-        log("Created popup: " + popup);
-      }
-
-      function handleClosePopup(message) {
-        log("In handleClosePopup: " + JSON.stringify(message));
-        if (popup) {
-          popup.close();
-        }
-        popup = null;
-        popupRequestMessage = null;
-      }
-
-      function handleLoginResponse(pm) {
-        log("In handleLoginResponse.");
-        pm.mailbox = popupRequestMessage.mailbox;
-        send(pm);
-      }
-
-
-      // This is only a named function so that we can unhook it later.
-      function doPost() {
-        send({operation:"getVerifiedEmail"});
-      }
-
-      document.body.appendChild(iframe);
-
-      // Send the getVerifiedEmail event as soon as the iframe is loaded.
-      iframe.addEventListener("load", doPost, true);
-      window.addEventListener("message", handlePost, true);  // For replies.
+    },
 
       this.unhook = function() {
         // Try our best to do each of these things.
