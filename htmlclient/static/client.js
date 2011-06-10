@@ -135,6 +135,24 @@
     w/ the specified audience, if possible */
     // XXX: Error checking
     audienceEmail = _getIdForAudience(audience);
+    return _getCertRecord(audienceEmail);
+  }
+
+  function _generateAssertion(audience, certRecord) {
+    var nowSeconds = parseInt(new Date().getTime() / 1000);
+    var assertionBody = {
+      'exp': nowSeconds + 120,
+      'aud': audience,
+      'moz-vep-nonce': {},
+      'moz-vep-certificate': certRecord.cert
+    };
+    var algorithm = {'alg': 'RS256'};
+    var webToken = new jwt.WebToken(JSON.stringify(assertionBody), algorithm);
+    return webToken.serialize(certRecord.privateKey);
+  }
+
+  function _generateKeyPair() {
+    // TODO
   }
 
   clientApi = {
@@ -203,7 +221,7 @@
       if (certRecord === null) {
         // TODO
       };
-      var assertion = _generateAssertion(certRecord);
+      var assertion = _generateAssertion(audience, certRecord);
       navigator.id.onVerifiedEmail(assertion);
     }
   };
