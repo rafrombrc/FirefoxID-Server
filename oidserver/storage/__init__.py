@@ -53,6 +53,7 @@ class OIDStorage(PluginRegistry):
     def remove_unvalidated(self, uid, email):
         """ GC unvalidated elements """
 
+
 def get_storage(config, type='oidstorage'):
     # loading provided storages
     from oidserver.storage.memory import MemoryStorage

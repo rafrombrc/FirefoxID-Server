@@ -71,6 +71,7 @@ urls = [
 controllers = {'user': UserController,
                'auth': AuthController}
 
+
 class OIDApp(SyncServerApp):
     """FirefoxID application"""
 
@@ -84,7 +85,6 @@ class OIDApp(SyncServerApp):
                                 'auth', 'manage_info'),
                         ('POST', '/%s/manage_email' % VERSION,
                                 'auth', 'manage_email'),
-                        ## These are admin oriented. (config value to turn these on?)
                         (('GET', 'POST'), '/%s/login' % VERSION,
                                 'auth', 'login'),
                         # Log the user out of the system

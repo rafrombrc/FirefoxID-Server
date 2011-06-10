@@ -1,13 +1,10 @@
 from datetime import datetime
 from oidserver.storage import OIDStorage, OIDStorageException
-from oidserver.storage.oidstoragebase import OIDStorageBase
 from pymongo.errors import OperationFailure
 from services import logger
 from services.util import randchar
-import json
 import pymongo
 import time
-import types
 
 
 class MongoStorage(OIDStorage):
@@ -59,7 +56,7 @@ class MongoStorage(OIDStorage):
 
     def get_user_info(self, uid):
         try:
-            return self._user_db.find_one({u'uid':uid})
+            return self._user_db.find_one({u'uid': uid})
         except OperationFailure, ofe:
             logger.error("Could not fetch info for uid [%s], [%s]" % (uid,
                                                                     str(ofe)))
@@ -101,7 +98,7 @@ class MongoStorage(OIDStorage):
         validation_record = {u'uid': uid,
                              u'created': datetime.now(),
                              u'email': email}
-        user = self._user_db.get(uid,None)
+        user = self._user_db.get(uid, None)
         if user is None:
             raise OIDStorageException("uid not found")
         if 'emails' not in user:
@@ -119,7 +116,7 @@ class MongoStorage(OIDStorage):
         user = self._user_db.find_one({u'uid': uid})
         if user is None:
             return None
-        if (email in user.get('emails',{}) and
+        if (email in user.get('emails', {}) and
             user['emails'][email].get('state', None) == 'pending'):
             return user['emails'][email].get('conf_code', None)
         return None
@@ -134,7 +131,7 @@ class MongoStorage(OIDStorage):
                         del user['emails'][email]
                         self.set_user_info(uid, user)
                         self._validate_db.remove({'_id': rtoken})
-                    except KeyError, OperationFailure:
+                    except (KeyError, OperationFailure):
                         return False
         return True
 
@@ -147,7 +144,7 @@ class MongoStorage(OIDStorage):
                     email = record['email']
                     user['emails'].append(email)
                     del user['emails'][email]
-                    self._validate_db.remove({u'_id':token})
+                    self._validate_db.remove({u'_id': token})
                 self.set_user_info(uid, user)
                 return True
         except (KeyError), ofe:

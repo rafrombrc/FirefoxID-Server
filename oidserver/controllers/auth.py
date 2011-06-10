@@ -2,15 +2,14 @@ from oidserver import logger, VERSION
 from oidserver.controllers import BaseController
 from oidserver.jws import JWS, JWSException
 from oidserver.storage import OIDStorageException
-from oidserver.util import (get_template, text_to_html_filter, url_filter)
+from oidserver.util import (get_template)
 from Crypto.Random import random
-from services.util import extract_username, send_email
+from services.util import extract_username
 from time import time
 from urllib import quote, unquote
 from webob import Response
 from webob.exc import HTTPBadRequest, HTTPFound, HTTPForbidden
 
-import json
 import smtplib
 
 
@@ -86,7 +85,7 @@ class AuthController(BaseController):
             emails = []
             for email in user_info.get('emails'):
                 email_record = user_info['emails'].get(email)
-                if email_record.get('state',None) == 'verified':
+                if email_record.get('state', None) == 'verified':
                     emails.append(email)
             response = {'emails': emails}
         body = template.render(request = request,
@@ -116,8 +115,8 @@ class AuthController(BaseController):
         error = None
         (content_type, template) = self.get_template_from_request(request,
                                         html_template = 'register_cert')
-        pub_key = request.params.get('pubkey',None)
-        email = request.params.get('id',None)
+        pub_key = request.params.get('pubkey', None)
+        email = request.params.get('id', None)
         uid = self.get_session_uid(request)
         if email is None or pub_key is None:
             logger.warn('get_cerficate is missing required data')
@@ -139,7 +138,7 @@ class AuthController(BaseController):
     def random(self, request, **kw):
         """ Return a set of random numbers
         """
-        rval = result.append(random.getrandbits(random.randint(1,256)))
+        rval = random.getrandbits(random.randint(1, 256))
         (content_type, template) = self.get_template_from_request(request)
         body = template.render(request = request,
                                response = {'random': rval},
@@ -241,7 +240,6 @@ class AuthController(BaseController):
 
             # if this is an email validation, skip to that.
             if 'validate' in request.params:
-                jws = JWS(config = self.app.config)
                 return self.validate(request)
         # Attempt to get the uid.
         if uid is None:
@@ -426,11 +424,12 @@ class AuthController(BaseController):
                 body = template.render(error =
                                        self.error_codes.get('LOGIN_ERROR'))
             else:
-                state = address_info.get('state',None)
+                address_state = address_info.get('state', None)
 
-                if state == 'verified':
+                if address_state == 'verified':
                     return self.generate_assertion(email, request)
-                elif address_state == 'pending' or address_state == 'needs validation':
+                elif (address_state == 'pending' or
+                      address_state == 'needs validation'):
                     self.send_validate_email(uid, email)
                     body = template.render(response = {'success': True,
                                                'status': 'sending',

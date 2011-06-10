@@ -20,7 +20,7 @@ class TestApi(unittest.TestCase):
     # Please use valid credentials and targets
     good_credentials = {'email': 'good@example.com',
                         'password': 'good',
-                        'pubKey': json.dumps({'algorithm':'HS256',
+                        'pubKey': json.dumps({'algorithm': 'HS256',
                                               'keydata': 'J RANDOM KEY'})}
 
     default_params = {'sid': '123abc',
@@ -174,7 +174,7 @@ class TestApi(unittest.TestCase):
                        'password': self.good_credentials.get('password')})
         params.update({'output': 'html'})
         path = '/%s/login' % VERSION
-        response = self.app.post(path,
+        self.app.post(path,
                             params,
                             status = 302
                             )
@@ -205,7 +205,6 @@ class TestApi(unittest.TestCase):
         self.app.post(path,
                     params = params,
                     extra_environ = self.extra_environ)
-        storage = self.app.app.wrap_app.app.storage
 
     def test_refresh_certificate(self):
         """ attempt to refresh a given certificate """
@@ -213,7 +212,7 @@ class TestApi(unittest.TestCase):
         path = '/%s/refresh_certificate' % VERSION
         params = self.default_params.copy()
         params.update({
-            'certificate':self.app.app.wrap_app.app.controllers.get('auth').\
+            'certificate': self.app.app.wrap_app.app.controllers.get('auth').\
                 gen_certificate(self.good_credentials.get('email'),
                                 self.good_credentials.get('pubKey')),
             'pubkey': self.good_credentials.get('pubKey')})
