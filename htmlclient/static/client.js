@@ -126,13 +126,14 @@
     var audRecord = audiences[audience];
     if (typeof(audRecord) === "undefined") {
       // no previous id provided for this audience, user must specify
-      // XXX: TODO
+      // TODO
     };
   }
 
   function _getCertRecordForAudience(audience) {
     /* return a valid id certificate for the id (i.e. email address) associated
     w/ the specified audience, if possible */
+    // XXX: Error checking
     audienceEmail = _getIdForAudience(audience);
   }
 
