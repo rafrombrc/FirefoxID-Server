@@ -61,7 +61,8 @@ var security = {};
     };
     return {
       "publicKey": {"keyvalues": [pub]},
-      "privateKey": {"keyvalues": [priv]}
+      "privateKey": {"keyvalues": [priv]},
+      "rsaKey": rsa
     };
   }
 

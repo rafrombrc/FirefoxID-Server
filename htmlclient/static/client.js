@@ -148,7 +148,7 @@
     };
     var algorithm = {'alg': 'RS256'};
     var webToken = new jwt.WebToken(JSON.stringify(assertionBody), algorithm);
-    return webToken.serialize(certRecord.privateKey);
+    return webToken.rsaKeySerialize(certRecord.rsaKey);
   }
 
   clientApi = {
@@ -177,7 +177,8 @@
         certRecord = {'email': email,
                       'issuer': document.domain,
                       'publicKey': keyPair.publicKey,
-                      'privateKey': keyPair.privateKey
+                      'privateKey': keyPair.privateKey,
+                      'rsaKey': keyPair.rsaKey,
                      }
         _setCertRecord(email, certRecord);
       };
