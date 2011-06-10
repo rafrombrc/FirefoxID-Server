@@ -151,10 +151,6 @@
     return webToken.serialize(certRecord.privateKey);
   }
 
-  function _generateKeyPair() {
-    // TODO
-  }
-
   clientApi = {
     registerVerifiedEmail: function registerVerifiedEmail(args) {
       var email = args.email;
@@ -177,7 +173,7 @@
       };
       if (certRecord === null) {
         // TODO: "please wait" UI
-        var keyPair = _generateKeyPair();
+        var keyPair = security._generateKeyPair();
         certRecord = {'email': email,
                       'issuer': document.domain,
                       'publicKey': keyPair.publicKey,
