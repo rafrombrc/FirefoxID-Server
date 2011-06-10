@@ -86,6 +86,14 @@
     _setStorage(key, JSON.stringify(obj));
   }
 
+  function _certExpired(cert) {
+    /* check to see whether the cert has expired, or will in the near future
+     such that it's more sensible to generate a new one. */
+    var futureDelta = 5 * 60;  // five minutes
+    var nowSeconds = new Date().getTime()/1000;
+    return cert.exp < nowSeconds + futureDelta;
+  };
+
   function _getCertRecord(email) {
     /* fetches id cert record from local storage, may return null */
 
@@ -97,11 +105,10 @@
       return null;
     };
 
-    // TODO: clarify cert format
-    if (typeof(certRecord.publicKey) === "undefined" ||
-        typeof(certRecord.privateKey) === "undefined") {
-      // invalid key pair, throw it away
-      return null;
+    var now = new Date();
+    if (_certExpired(certRecord.cert)) {
+      // cert has expired, don't return it
+      return null
     };
     return certRecord;
   }
@@ -139,7 +146,7 @@
       if (certRecord !== null) {
         var cert = certRecord.cert;
         var now = new Date();
-        if (cert.exp < now.getTime()/1000) {
+        if (_certExpired(cert)) {
           certRecord = null;
         } else if (certRecord.iss != document.location.hostname) {
           // XXX: is this actually correct?
