@@ -54,6 +54,18 @@ class MongoStorage(OIDStorage):
             addr_info['uid'] = uid
         return addr_info
 
+    def check_user(self, uid):
+        return self._user_db.find_one({u'_id': uid}) is not None
+
+    def create_user(self, uid, email, base = None, **kw):
+        if base is None:
+            base = {}
+        user_record = base
+        user_record['emails'] = {}
+        user_record['primary'] = email
+        self.set_user_info(uid, user_record)
+        return self.get_user_info(uid)
+
     def get_user_info(self, uid):
         try:
             return self._user_db.find_one({u'uid': uid})
@@ -83,12 +95,14 @@ class MongoStorage(OIDStorage):
         return self.get_address_info(uid, email_address)
 
     def set_user_info(self, uid, info=None, **kw):
+        if info is None:
+            return self.del_user(uid, confirmed = True)
         info[u'_id'] = uid
         self._user_db.save(info, safe = True)
 
     def del_user(self, uid, confirmed = False):
         if confirmed:
-            self._user_db.remove({u'uid': uid}, safe = True)
+            self._user_db.remove({u'_id': uid}, safe = True)
             return True
         else:
             return False
@@ -113,7 +127,7 @@ class MongoStorage(OIDStorage):
         return rtoken
 
     def get_validation_token(self, uid, email):
-        user = self._user_db.find_one({u'uid': uid})
+        user = self._user_db.find_one({u'_id': uid})
         if user is None:
             return None
         if (email in user.get('emails', {}) and
@@ -153,5 +167,3 @@ class MongoStorage(OIDStorage):
             raise OIDStorageException("Could not validate token")
         return False
 
-    def purge_validation(self, config = None):
-        return True

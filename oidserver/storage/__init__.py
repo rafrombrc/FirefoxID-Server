@@ -21,6 +21,10 @@ class OIDStorage(PluginRegistry):
         """ Return a dict of user info for the corresponding uid. """
 
     @abc.abstractmethod
+    def check_user(uid):
+        """ Return if the UID exists in the user database """
+
+    @abc.abstractmethod
     def set_user_info(uid, info):
         """ Set/Create the user information """
 

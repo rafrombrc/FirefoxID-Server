@@ -133,6 +133,3 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                          token, str(ofe))
             raise OIDStorageException("Could not validate token")
         return False
-
-    def purge_validation(self, config = None):
-        return True
