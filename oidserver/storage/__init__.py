@@ -72,7 +72,7 @@ def get_storage(config, type='oidstorage'):
     try:
         from oidserver.storage.mongo import MongoStorage
         OIDStorage.register(MongoStorage)
-    except ImportError:
+    except ImportError, ex:
         logger.warn("Could not import mongo. Has it been installed? [%s]" %
                     ex)
         pass

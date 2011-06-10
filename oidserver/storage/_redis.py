@@ -3,8 +3,6 @@ from oidserver.storage.oidstoragebase import OIDStorageBase
 from services import logger
 from services.util import randchar
 
-# TODO: should I switch to cJson for data storage?
-
 import redis
 import time
 import cjson

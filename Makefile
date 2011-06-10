@@ -23,7 +23,7 @@ build:
 	$(PYTHON) build.py $(APPNAME) $(DEPS)
 	$(EZ) nose
 	$(EZ) WebTest
-	$(EZ) Funkload #==1.14 #Currently locked due to a dependency issue in Funkload.
+	$(EZ) Funkload 
 	$(EZ) pylint
 	$(EZ) coverage
 	$(EZ) pymongo
@@ -78,7 +78,6 @@ sa_preflight:
 	$(INSTALL) openssl-devel
 	$(INSTALL) nginx
 	$(INSTALL) swig
-#	$(INSTALL) curl-devel
 
 # Configure UBUNTU style nginx to point to our config files.
 sa_fixnginx:

@@ -4,7 +4,7 @@ from oidserver.tests import FakeAuthTool, FakeRequest
 from oidserver.wsgiapp import make_app
 from webtest import TestApp
 
-import json
+import cjson
 import unittest
 
 """
@@ -20,7 +20,7 @@ class TestApi(unittest.TestCase):
     # Please use valid credentials and targets
     good_credentials = {'email': 'good@example.com',
                         'password': 'good',
-                        'pubKey': json.dumps({'algorithm': 'HS256',
+                        'pubKey': cjson.encode({'algorithm': 'HS256',
                                               'keydata': 'J RANDOM KEY'})}
 
     default_params = {'sid': '123abc',
@@ -186,7 +186,7 @@ class TestApi(unittest.TestCase):
         params.update(self.bad_credentials)
         path = '/%s/login' % VERSION
         response = self.app.post(path, params = params)
-        resp_obj = json.loads(response.body)
+        resp_obj = cjson.decode(response.body)
         self.check_default(resp_obj, path)
         self.failIf(resp_obj['error']['code'] != 401)
 
@@ -219,7 +219,7 @@ class TestApi(unittest.TestCase):
         response = self.app.post(path,
                                  params = params,
                                  status = 200)
-        resp_obj = json.loads(response.body)
+        resp_obj = cjson.decode(response.body)
         self.failUnless(resp_obj.get('success'))
         self.failUnless('certificate' in resp_obj)
         self.purge_db()

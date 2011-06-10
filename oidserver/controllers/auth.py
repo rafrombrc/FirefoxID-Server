@@ -136,7 +136,7 @@ class AuthController(BaseController):
         return Response(str(body), content_type = content_type)
 
     def random(self, request, **kw):
-        """ Return a set of random numbers
+        """ Return a random number
         """
         rval = random.getrandbits(random.randint(1, 256))
         (content_type, template) = self.get_template_from_request(request)
@@ -201,6 +201,8 @@ class AuthController(BaseController):
         email = None
         storage = self.app.storage
 
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
         # User is not logged in or the association is not present.
@@ -276,6 +278,8 @@ class AuthController(BaseController):
         """ Log a user out of the ID server
         """
         # sanitize value (since this will be echoed back)
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         logger.debug('Logging out.')
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
@@ -299,6 +303,8 @@ class AuthController(BaseController):
     def manage_email(self, request, **kw):
         (content_type, template) = self.get_template_from_request(request,
                                     html_template = 'confirm_email_notice')
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         uid = self.get_uid(request, strict = False)
         if not uid:
             return HTTPBadRequest()
@@ -386,8 +392,7 @@ class AuthController(BaseController):
             raise HTTPBadRequest()
         uid = self.get_uid(request, strict = False)
         if not uid:
-            extra = {}
-            extra['validate'] = token
+            extra = {'validate': token}
             return self.login(request, extra)
         body = ""
         try:
@@ -407,6 +412,8 @@ class AuthController(BaseController):
     def verify_address(self, request, **kw):
         """ Verify a given address (unused?)
         """
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         ## Only logged in users can play
         uid = self.get_session_uid(request)
         if uid is None:
@@ -444,8 +451,8 @@ class AuthController(BaseController):
         if 'id' not in cert_info:
             logger.error("No email address found in certificate")
             return (False, address_info)
-        address_info = \
-            self.app.storage.get_address_info(uid, cert_info.get('id'))
+        address_info = self.app.storage.get_address_info(uid,
+                                                         cert_info.get('id'))
         if address_info is None:
             logger.warn("No address info for certificate id %s, uid: %s " %
                         (cert_info.get('id'), uid))
