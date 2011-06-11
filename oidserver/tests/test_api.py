@@ -4,7 +4,7 @@ from oidserver.tests import FakeAuthTool, FakeRequest
 from oidserver.wsgiapp import make_app
 from webtest import TestApp
 
-import json
+import cjson
 import unittest
 
 """
@@ -20,7 +20,7 @@ class TestApi(unittest.TestCase):
     # Please use valid credentials and targets
     good_credentials = {'email': 'good@example.com',
                         'password': 'good',
-                        'pubKey': json.dumps({'algorithm':'HS256',
+                        'pubKey': cjson.encode({'algorithm': 'HS256',
                                               'keydata': 'J RANDOM KEY'})}
 
     default_params = {'sid': '123abc',
@@ -174,7 +174,7 @@ class TestApi(unittest.TestCase):
                        'password': self.good_credentials.get('password')})
         params.update({'output': 'html'})
         path = '/%s/login' % VERSION
-        response = self.app.post(path,
+        self.app.post(path,
                             params,
                             status = 302
                             )
@@ -186,7 +186,7 @@ class TestApi(unittest.TestCase):
         params.update(self.bad_credentials)
         path = '/%s/login' % VERSION
         response = self.app.post(path, params = params)
-        resp_obj = json.loads(response.body)
+        resp_obj = cjson.decode(response.body)
         self.check_default(resp_obj, path)
         self.failIf(resp_obj['error']['code'] != 401)
 
@@ -205,7 +205,6 @@ class TestApi(unittest.TestCase):
         self.app.post(path,
                     params = params,
                     extra_environ = self.extra_environ)
-        storage = self.app.app.wrap_app.app.storage
 
     def test_refresh_certificate(self):
         """ attempt to refresh a given certificate """
@@ -213,14 +212,14 @@ class TestApi(unittest.TestCase):
         path = '/%s/refresh_certificate' % VERSION
         params = self.default_params.copy()
         params.update({
-            'certificate':self.app.app.wrap_app.app.controllers.get('auth').\
+            'certificate': self.app.app.wrap_app.app.controllers.get('auth').\
                 gen_certificate(self.good_credentials.get('email'),
                                 self.good_credentials.get('pubKey')),
             'pubkey': self.good_credentials.get('pubKey')})
         response = self.app.post(path,
                                  params = params,
                                  status = 200)
-        resp_obj = json.loads(response.body)
+        resp_obj = cjson.decode(response.body)
         self.failUnless(resp_obj.get('success'))
         self.failUnless('certificate' in resp_obj)
         self.purge_db()

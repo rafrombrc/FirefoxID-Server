@@ -23,7 +23,8 @@ test_config = {'auth.user': 'good@example.com',
 #       auth.server_secret      Crypto Secret ('')
 #       db.host                 Database Host (127.0.0.1)
 #       oidstorage.backend      (memory | mongo | redis)
-#                               currently redis is not yet finalized
+#                               currently mongo is not yet finalized
+
 
 class FakeRequest(object):
     """
@@ -35,7 +36,7 @@ class FakeRequest(object):
                  environ=None,
                  post=None,
                  get=None,
-                 host="localhost:80", # match UnitTest's fake localhost
+                 host="localhost:80",  # match UnitTest's fake localhost
                  **kw):
         self.path_info = path
         self.environ = environ or {}
@@ -43,6 +44,7 @@ class FakeRequest(object):
         self.params = get or {}
         self.params.update({'audience': 'test.example.org'})
         self.host = host
+
 
 class FakeAuthTool(DummyAuth):
     """

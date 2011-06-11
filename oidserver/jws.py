@@ -11,11 +11,11 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is __________________________________________.
+ * The Original Code is http://hg.mozilla.org/services/server-identity/.
  *
  * The Initial Developer of the Original Code is
  * J-R Conlin (jrconlin@mozilla.com).
- * Portions created by the Initial Developer are Copyright (C) 2___
+ * Portions created by the Initial Developer are Copyright (C) 2011
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
@@ -40,8 +40,7 @@ from oidserver import logger
 
 import base64
 import hmac
-import json
-#import pycurl
+import cjson
 
 
 class JWSException (Exception):
@@ -83,8 +82,8 @@ class JWS:
         except KeyError, ex:
             logger.error("Invalid JWS Sign method specified %s", str(ex))
             raise(JWSException("Unsupported encoding method specified"))
-        header_str = base64.urlsafe_b64encode(json.dumps(header))
-        payload_str = base64.urlsafe_b64encode(json.dumps(payload))
+        header_str = base64.urlsafe_b64encode(cjson.encode(header))
+        payload_str = base64.urlsafe_b64encode(cjson.encode(payload))
         sbs = "%s.%s" % (header_str, payload_str)
         signed = signer(alg, header, sbs)
         if signed:
@@ -97,7 +96,7 @@ class JWS:
             raise(JWSException("Cannot verify empty JWS"))
         if self.verify(jws):
             (head, payload_str, signature) = jws.split('.')
-            payload = json.loads(base64.b64decode(payload_str))
+            payload = cjson.decode(base64.b64decode(payload_str))
             return payload
         else:
             raise(JWSException("Invalid JWS"))
@@ -107,7 +106,7 @@ class JWS:
             raise (JWSException("Cannot verify empty JWS"))
         try:
             (header_str, payload_str, signature) = jws.split('.')
-            header = json.loads(base64.b64decode(header_str))
+            header = cjson.decode(base64.b64decode(header_str))
             if alg is None:
                 alg = header.get('alg', 'NONE')
             try:
@@ -200,7 +199,7 @@ class JWS:
 
 
 def create_rsa_jki_entry(pubKey, keyid=None):
-    keys = json.loads(base64.b64decode(pubKey))
+    keys = cjson.decode(base64.b64decode(pubKey))
     vinz = {'algorithm': 'RSA',
             'modulus': keys.get('n'),
             'exponent': keys.get('e')}
@@ -226,7 +225,7 @@ def fetch_rsa_pub_key(header, **kw):
         elif 'jku' in header and header.get('jku', None):
             key = header['jku']
             if key.lower().startswith('data:'):
-                pub = json.loads(key[key.index('base64,')+7:])
+                pub = cjson.decode(key[key.index('base64,')+7:])
         return pub
         """
         pub = {

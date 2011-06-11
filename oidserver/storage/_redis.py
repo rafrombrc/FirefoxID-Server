@@ -1,17 +1,13 @@
-from collections import defaultdict
-from hashlib import sha1
 from oidserver.storage import OIDStorage, OIDStorageException
 from oidserver.storage.oidstoragebase import OIDStorageBase
 from services import logger
 from services.util import randchar
 
-# TODO: should I switch to cJson for data storage?
-
 import redis
 import time
 import cjson
 
-class RedisStorage(OIDStorage):
+class RedisStorage(OIDStorage, OIDStorageBase):
     USER_DB = 'user_'
     VALID_DB = 'validate_'
 

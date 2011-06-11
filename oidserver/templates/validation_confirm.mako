@@ -1,10 +1,10 @@
 <%
-    email = pageargs.get('email','')
-    user = pageargs.get('user',{})
-    config = pageargs.get('config',{})
-    admin_url = (config.get('oid.login_host','https://localhost')  +
+    email = pageargs.get('email', '')
+    user = pageargs.get('user', {})
+    config = pageargs.get('config', {})
+    admin_url = (config.get('oid.login_host', 'https://localhost')  +
                     '/' +
-                    user.get('pemail','login'))
+                    user.get('pemail', 'login'))
 
 %><!DOCTYPE HTML>
 <html>
