@@ -8,7 +8,7 @@ from oidserver.wsgiapp import make_app
 from webtest import TestApp
 from M2Crypto import RSA, BIO
 
-import json
+import cjson
 import base64
 import unittest
 
@@ -81,7 +81,7 @@ class TestJWS(unittest.TestCase):
     def test_sign_HS256(self):
         alg = 'HS256'
         header = self.jws.header(alg)
-        sbs = "%s.%s" % (base64.urlsafe_b64encode(json.dumps(header)),
+        sbs = "%s.%s" % (base64.urlsafe_b64encode(cjson.encode(header)),
                          self.fake_sbs)
         signed = self.jws._sign_HS(alg, header, sbs)
         (header_str, payload_str, sig_str) = signed.split('.')
@@ -101,7 +101,7 @@ class TestJWS(unittest.TestCase):
         ## Don't store the public key, Needs to be "fetched" from a known
         ## location
         header = self.jws.header(alg = alg)
-        sbs = "%s.%s" % (base64.urlsafe_b64encode(json.dumps(header)),
+        sbs = "%s.%s" % (base64.urlsafe_b64encode(cjson.encode(header)),
                          self.fake_sbs)
         signed = self.jws._sign_RS(alg, header, sbs)
         # trim off the fake "sbs"

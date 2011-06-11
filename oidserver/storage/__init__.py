@@ -21,6 +21,10 @@ class OIDStorage(PluginRegistry):
         """ Return a dict of user info for the corresponding uid. """
 
     @abc.abstractmethod
+    def check_user(uid):
+        """ Return if the UID exists in the user database """
+
+    @abc.abstractmethod
     def set_user_info(uid, info):
         """ Set/Create the user information """
 
@@ -53,6 +57,7 @@ class OIDStorage(PluginRegistry):
     def remove_unvalidated(self, uid, email):
         """ GC unvalidated elements """
 
+
 def get_storage(config, type='oidstorage'):
     # loading provided storages
     from oidserver.storage.memory import MemoryStorage
@@ -67,7 +72,7 @@ def get_storage(config, type='oidstorage'):
     try:
         from oidserver.storage.mongo import MongoStorage
         OIDStorage.register(MongoStorage)
-    except ImportError:
+    except ImportError, ex:
         logger.warn("Could not import mongo. Has it been installed? [%s]" %
                     ex)
         pass

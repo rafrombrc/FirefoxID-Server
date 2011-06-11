@@ -2,15 +2,14 @@ from oidserver import logger, VERSION
 from oidserver.controllers import BaseController
 from oidserver.jws import JWS, JWSException
 from oidserver.storage import OIDStorageException
-from oidserver.util import (get_template, text_to_html_filter, url_filter)
+from oidserver.util import (get_template)
 from Crypto.Random import random
-from services.util import extract_username, send_email
+from services.util import extract_username
 from time import time
 from urllib import quote, unquote
 from webob import Response
 from webob.exc import HTTPBadRequest, HTTPFound, HTTPForbidden
 
-import json
 import smtplib
 
 
@@ -86,7 +85,7 @@ class AuthController(BaseController):
             emails = []
             for email in user_info.get('emails'):
                 email_record = user_info['emails'].get(email)
-                if email_record.get('state',None) == 'verified':
+                if email_record.get('state', None) == 'verified':
                     emails.append(email)
             response = {'emails': emails}
         body = template.render(request = request,
@@ -116,8 +115,8 @@ class AuthController(BaseController):
         error = None
         (content_type, template) = self.get_template_from_request(request,
                                         html_template = 'register_cert')
-        pub_key = request.params.get('pubkey',None)
-        email = request.params.get('id',None)
+        pub_key = request.params.get('pubkey', None)
+        email = request.params.get('id', None)
         uid = self.get_session_uid(request)
         if email is None or pub_key is None:
             logger.warn('get_cerficate is missing required data')
@@ -137,9 +136,9 @@ class AuthController(BaseController):
         return Response(str(body), content_type = content_type)
 
     def random(self, request, **kw):
-        """ Return a set of random numbers
+        """ Return a random number
         """
-        rval = result.append(random.getrandbits(random.randint(1,256)))
+        rval = random.getrandbits(random.randint(1, 256))
         (content_type, template) = self.get_template_from_request(request)
         body = template.render(request = request,
                                response = {'random': rval},
@@ -202,6 +201,8 @@ class AuthController(BaseController):
         email = None
         storage = self.app.storage
 
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
         # User is not logged in or the association is not present.
@@ -241,7 +242,6 @@ class AuthController(BaseController):
 
             # if this is an email validation, skip to that.
             if 'validate' in request.params:
-                jws = JWS(config = self.app.config)
                 return self.validate(request)
         # Attempt to get the uid.
         if uid is None:
@@ -278,6 +278,8 @@ class AuthController(BaseController):
         """ Log a user out of the ID server
         """
         # sanitize value (since this will be echoed back)
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         logger.debug('Logging out.')
         (content_type, template) = self.get_template_from_request(request,
                                                     html_template = 'login')
@@ -301,6 +303,8 @@ class AuthController(BaseController):
     def manage_email(self, request, **kw):
         (content_type, template) = self.get_template_from_request(request,
                                     html_template = 'confirm_email_notice')
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         uid = self.get_uid(request, strict = False)
         if not uid:
             return HTTPBadRequest()
@@ -388,8 +392,7 @@ class AuthController(BaseController):
             raise HTTPBadRequest()
         uid = self.get_uid(request, strict = False)
         if not uid:
-            extra = {}
-            extra['validate'] = token
+            extra = {'validate': token}
             return self.login(request, extra)
         body = ""
         try:
@@ -409,6 +412,8 @@ class AuthController(BaseController):
     def verify_address(self, request, **kw):
         """ Verify a given address (unused?)
         """
+        if not self.is_internal(request):
+            raise HTTPForbidden()
         ## Only logged in users can play
         uid = self.get_session_uid(request)
         if uid is None:
@@ -426,11 +431,12 @@ class AuthController(BaseController):
                 body = template.render(error =
                                        self.error_codes.get('LOGIN_ERROR'))
             else:
-                state = address_info.get('state',None)
+                address_state = address_info.get('state', None)
 
-                if state == 'verified':
+                if address_state == 'verified':
                     return self.generate_assertion(email, request)
-                elif address_state == 'pending' or address_state == 'needs validation':
+                elif (address_state == 'pending' or
+                      address_state == 'needs validation'):
                     self.send_validate_email(uid, email)
                     body = template.render(response = {'success': True,
                                                'status': 'sending',
@@ -445,8 +451,8 @@ class AuthController(BaseController):
         if 'id' not in cert_info:
             logger.error("No email address found in certificate")
             return (False, address_info)
-        address_info = \
-            self.app.storage.get_address_info(uid, cert_info.get('id'))
+        address_info = self.app.storage.get_address_info(uid,
+                                                         cert_info.get('id'))
         if address_info is None:
             logger.warn("No address info for certificate id %s, uid: %s " %
                         (cert_info.get('id'), uid))

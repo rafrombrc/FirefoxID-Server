@@ -1,12 +1,10 @@
 from collections import defaultdict
 from datetime import datetime
-from hashlib import sha1
 from oidserver.storage import OIDStorage, OIDStorageException
 from oidserver.storage.oidstoragebase import OIDStorageBase
 from services import logger
 from services.util import randchar
 import time
-import types
 
 
 class MemoryStorage(OIDStorage, OIDStorageBase):
@@ -42,7 +40,6 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         self._user_db[uid] = user_record
         return self._user_db[uid]
 
-
     def get_user_info(self, uid):
         return self._user_db.get(uid, None)
 
@@ -66,7 +63,7 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         self.set_user_info(uid, info)
         return self.get_address_info(uid, email_address)
 
-    def set_user_info(self, uid, info=None, **kw):
+    def set_user_info(self, uid, info = None, **kw):
         self._user_db[uid] = info
 
     def del_user(self, uid, confirmed = False):
@@ -81,7 +78,7 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         validation_record = {u'uid': uid,
                              u'created': datetime.now(),
                              u'email': email}
-        user = self._user_db.get(uid,None)
+        user = self._user_db.get(uid, None)
         if user is None:
             raise OIDStorageException("uid not found")
         if 'emails' not in user:
@@ -95,10 +92,10 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
         return rtoken
 
     def get_validation_token(self, uid, email):
-        user = self._user_db.get(uid,None)
+        user = self._user_db.get(uid, None)
         if user is None:
             return None
-        if email in user.get('emails',{}):
+        if email in user.get('emails', {}):
             return user.get('emails').get(email, {}).get('conf_code', None)
         return None
 
@@ -124,7 +121,7 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                     email = record['email']
                     # only deal with 'pending' records.
                     if user['emails'][email].get('state', None) == 'pending':
-                        user['emails'][email]['state'] = 'verified';
+                        user['emails'][email]['state'] = 'verified'
                         # Remove the old valiation code
                     if 'conf_code' in user['emails'][email]:
                         del user['emails'][email]['conf_code']
@@ -136,6 +133,3 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
                          token, str(ofe))
             raise OIDStorageException("Could not validate token")
         return False
-
-    def purge_validation(self, config = None):
-        return True

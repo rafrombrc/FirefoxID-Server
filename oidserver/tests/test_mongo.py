@@ -8,7 +8,7 @@ from oidserver.tests import FakeRequest
 MONGO = False
 try:
     if test_config.get('oidstorage.backend','memory') == 'mongo':
-        from oidserver.storage.mongo import MongoStorage # NOQA
+        from oidserver.storage.mongo import MongoStorage  # NOQA
         MONGO = True
 except ImportError:
     pass

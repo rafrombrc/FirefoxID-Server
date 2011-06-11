@@ -1,16 +1,12 @@
 import hashlib
 import cPickle
-from base64 import b64encode, b64decode
-import hmac
+from base64 import b64encode
 import random
 import os
 import time
-import urlparse
-import urllib
 from mako.template import Template
 
 from services.util import randchar
-import logging
 
 
 _DEFAULT_MOD = """
@@ -189,6 +185,7 @@ _TMPL = os.path.join(os.path.dirname(__file__), 'templates')
 def get_template(name):
     name = os.path.join(_TMPL, '%s.mako' % name)
     return Template(filename=name)
+
 
 # The following filters are not guaranteed safe, but should trap most
 # unsafe behaviors.

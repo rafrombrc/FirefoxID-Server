@@ -131,7 +131,7 @@
 
       function handlePost(m) {
         log("Origin: " + m.origin + "\n");
-        log("Wrapper received: " + m.deta + "\n");
+        log("Wrapper received: " + m.data + "\n");
 
         if (m.origin != identityOrigin) {
           log("Rejecting message with origin " + m.origin);
