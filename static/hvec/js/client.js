@@ -152,6 +152,10 @@
     return webToken.rsaKeySerialize(certRecord.rsaKey);
   }
 
+  function _getUserIdSelection(certsArray, prevEmail) {
+    // TODO
+  }
+
   clientApi = {
     registerVerifiedEmail: function registerVerifiedEmail(args) {
       var email = args.email;
@@ -216,10 +220,18 @@
     },
 
     getVerifiedEmail: function getVerifiedEmail(args) {
+      var certsArray = _getCertsArray();
+      if (!certsArray.length) {
+        // if we don't have any certificates then we don't have any verified
+        // emails
+        navigator.id.onVerifiedEmail(null);
+        return;
+      }
       var audience = document.location.hostname;
-      var certRecord = _getCertRecordForAudience(audience);
-      if (certRecord === null) {
-        // TODO
+      var prevEmail = _getIdForAudience(audience);
+      var certRecord = _getUserIdSelection(certsArray, prevEmail);
+      if (_certExpired(certRecord.cert)) {
+        // TODO: call updateUrl to renew cert
       };
       var assertion = _generateAssertion(audience, certRecord);
       navigator.id.onVerifiedEmail(assertion);
