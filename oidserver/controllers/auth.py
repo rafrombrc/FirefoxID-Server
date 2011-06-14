@@ -96,8 +96,8 @@ class AuthController(BaseController):
         return Response(str(body), content_type = content_type)
 
     def gen_callback_url(self, uid, email):
-        ### TODO
-        return 'TODO'
+        return "%s/%s" % ( self.app.config.get('oid.login_host', 'localhost'),
+                          'refresh_certificate')
 
     def gen_certificate(self, email, ua_pub_key):
         ttl = time() + self.app.config.get('auth.cert_ttl_in_secs', 86400)
@@ -464,31 +464,6 @@ class AuthController(BaseController):
                         acceptible)
             return (False, address_info)
         return (True, address_info)
-
-    def gen_identity_assertion(self, request, data=None):
-        """return the default email
-        """
-        (content_type, template) = self.get_template_from_request(request)
-        uid = self.get_uid(request)
-        user = None
-        if uid is not None:
-            user = self.app.storage.get_user_info(uid)
-        #if the user is none, should we establish an association?
-        if user is not None:
-            valid_period = self.app.config.get('auth.valid_until', 300)
-            valid_until = int(time()) + valid_period
-            identity_assertion = {
-                'type': 'server-signed',
-                'issuer': self.app.config.get('auth.issuer', 'untrusted'),
-                'audience': request.host,
-                'valid-until': valid_until,
-                'id': user.get('email')
-            }
-            if data is not None:
-                identity_assertion['data'] = data
-            jws = JWS(config = self.app.config)
-            return jws.sign(identity_assertion)
-        return None
 
     def get_template_from_request(self, request,
                                   html_template = 'html_response',

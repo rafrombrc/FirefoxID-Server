@@ -43,7 +43,7 @@ main = oidserver.wsgiapp:make_app
 main = paste.script.appinstall:Installer
 """
 
-requires = ['WebOb', 'Paste', 'PasteScript', 'Services', 'Mako', 'Beaker']
+requires = ['WebOb', 'Paste', 'PasteScript', 'Services', 'Mako', 'Beaker', 'PyCrypto']
 
 setup(name='OpenIdServer', author='Mozilla Services Group',
       url='http://hg.mozilla.org/services/server-identity/',
