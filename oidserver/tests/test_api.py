@@ -61,6 +61,7 @@ class TestApi(unittest.TestCase):
              'oid.from_address': 'test@example.org',
              'oid.reply_to': 'no-reply@example.net',
              'oid.admin_page': True,
+             'oid.login_host': 'http://localhost:80',
              'test.nomail': True,
              'global.debug_page': '__debug__'
             }
@@ -222,6 +223,7 @@ class TestApi(unittest.TestCase):
         resp_obj = cjson.decode(response.body)
         self.failUnless(resp_obj.get('success'))
         self.failUnless('certificate' in resp_obj)
+        self.failUnless('callbackUrl' in resp_obj)
         self.purge_db()
 
     def test_registered_emails(self):
