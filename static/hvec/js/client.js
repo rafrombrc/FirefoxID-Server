@@ -194,6 +194,7 @@
       // the public key in the stored key pair
       var certJwt = args.certJwt;
       var updateUrl = args.updateUrl;
+      var errorUrl = args.errorUrl;
       var webToken = jwt.WebTokenParser.parse(certJwt);
       var objectStr = jwt.base64urldecode(webToken.payloadSegment);
       var cert = JSON.parse(objectStr);
@@ -210,6 +211,7 @@
       };
       certRecord.cert = cert;
       certRecord.certUpdateUrl = updateUrl;
+      certRecord.certErrorUrl = errorUrl;
       _setCertRecord(email, certRecord);
     },
 
