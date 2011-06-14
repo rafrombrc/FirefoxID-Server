@@ -4,12 +4,15 @@
     import json
 
     # Serialize the passed arguments into a JSON token.
-    _request = pageargs.get('request',{'params':{},
-                            'path':''})
+    _request = pageargs.get('request',{'params': {},
+                            'path': ''})
+    callback = pageargs.get('callback', 'window.opener.postMessage')
     _content = {"success": True}
-    if 'error' in pageargs:
+    error = pageargs.get('error', None)
+    response = pageargs.get('response', None)
+    if error:
         _content['success'] = False
-    if 'response' in pageargs:
+    if response:
         try:
             for key in pageargs['response'].keys():
                 _content[key] = pageargs['response'][key];
@@ -30,7 +33,7 @@
 <html>
 <body>
 <script>
-window.opener.postMessage(JSON.stringify(${_serialized}),"*")
+${callback}(JSON.stringify(${_serialized}),"*")
 </script>
 </body>
 </html>

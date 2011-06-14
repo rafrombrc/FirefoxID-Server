@@ -37,6 +37,7 @@ from services.wsgiauth import Authentication
 from webob.exc import HTTPTemporaryRedirect
 from oidserver.controllers import BaseController
 
+
 class OIDAuthentication(Authentication, BaseController):
 
     def check(self, request, match):

@@ -83,24 +83,6 @@
         return false;
     }
 
-    function checkForValid() {
-        req = new XMLHttpRequest();
-        var uri = identityBaseURL + 'has_email'
-        var postArg = new FormData()
-        postArg.append('output', 'json')
-        try {
-            req.open('POST', uri, false);
-            req.send(postArg);
-            resp = JSON.parse(req.responseText);
-            if (resp.success){
-
-            }
-
-        } catch (ex) {
-            log ("Got exception " + ex + " to " + uri)
-        }
-    }
-
     function init() {
         var i;
         var buttons;

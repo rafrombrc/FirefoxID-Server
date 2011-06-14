@@ -1,7 +1,8 @@
 from hashlib import sha1
+from services.controllers import StandardController
 
 
-class BaseController(object):
+class BaseController(StandardController):
 
     # used for unit testing only
     fake_session = {}

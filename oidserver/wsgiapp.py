@@ -40,7 +40,7 @@ from beaker.middleware import SessionMiddleware
 from oidserver import VERSION
 from oidserver.auth import OIDAuthentication
 from oidserver.controllers.auth import AuthController
-from oidserver.controllers.oid import OIDController
+from oidserver.controllers.user import UserController
 from oidserver.storage import get_storage
 from services.baseapp import set_app, SyncServerApp
 
@@ -49,51 +49,56 @@ urls = [
 
         ## private
         # Is the user Logged In?
-        ('POST', '/%s/logged_in' % VERSION,
-                'auth', 'logged_in'),
-        # get the default email for this user
-        ('POST', '/%s/get_default_email' % VERSION,
-                'auth', 'get_default_email'),
-        # get a list of emails for the given user (first is "default")
-        ('POST', '/%s/get_emails' % VERSION,
-                'auth', 'get_emails'),
-        # remove the default email for this user
-        ('POST', '/%s/remove_association' % VERSION,
-                'auth', 'remove_association'),
-        # get the identity assertion document.
-        ('POST', '/%s/get_identity_assertion' % VERSION,
-                'auth', 'get_identity_assertion'),
         ('POST', '/%s/authorize' % VERSION,
                 'auth', 'authorize'),
-        ('POST', '/%s/manage_info' % VERSION,
-                'auth', 'manage_info'),
-        ('POST', '/%s/manage_email' % VERSION,
-                'auth', 'manage_email'),
-        # You're logged in, now authorize the email address
+
+        ## Main calls
+        # Verify a given email address.
+#        ('POST', '/%s/verify_address' % VERSION,
+#                'auth', 'verify_address'),
+        # (validate &) refresh a certificate that we have previously issued
+        ('POST', '/%s/refresh_certificate' % VERSION,
+                'auth', 'refresh_certificate'),
+        # You're logged in, now authorize the email address via the token
         ('GET', '/%s/validate/{validate:[\w]+}' % VERSION,
                 'auth', 'validate'),
-
-        ## public
-        # verify that the identity assertion is valid.
-        (('GET', 'POST'), '/%s/login' % VERSION,
-                'auth', 'login'),
-        # Log the user out of the system
-        (('POST'), '/%s/logout' % VERSION,
-                'auth', 'logout'),
-        (('POST'), '/%s/verify' % VERSION,
-                'auth', 'verify'),
-        ('GET', '/{user:[@\w\.\-\+]+}',
-                'oid', 'get_user_info'),
+        ('POST', '/%s/get_certificate' % VERSION,
+                'auth', 'get_certificate'),
+        ('GET', '/%s/random' % VERSION,
+                'auth', 'random')
         ]
 
-controllers = {'oid': OIDController,
+controllers = {'user': UserController,
                'auth': AuthController}
 
 
 class OIDApp(SyncServerApp):
-    """OID application"""
+    """FirefoxID application"""
 
     def __init__(self, urls, controllers, config, auth_class):
+#        import pdb; pdb.set_trace();
+        if config.get('oid.admin_page', False):
+                #Add the admin page functions.
+                admin_urls = [
+                        # admin page entry points.
+                        ('POST', '/%s/manage_info' % VERSION,
+                                'auth', 'manage_info'),
+                        ('POST', '/%s/manage_email' % VERSION,
+                                'auth', 'manage_email'),
+                        (('GET', 'POST'), '/%s/login' % VERSION,
+                                'auth', 'login'),
+                        # Log the user out of the system
+                        (('POST'), '/%s/logout' % VERSION,
+                                'auth', 'logout'),
+                        #(('POST'), '/%s/verify' % VERSION,
+                        #        'auth', 'verify'),
+                        ('GET', '/{user:[@\w\.\-\+]+}',
+                                'user', 'get_user_info'),
+                        ('GET', '/%s/register' % VERSION,
+                                'auth', 'registered_emails')
+                        ]
+                # copy the admin_urls into the standard urls.
+                map(urls.append, admin_urls)
         """ Main storage """
         self.storage = get_storage(config, 'oidstorage')
         super(OIDApp, self).__init__(urls, controllers, config, auth_class)

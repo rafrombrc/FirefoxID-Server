@@ -27,26 +27,31 @@ simple to determine the corresponding package names for your system:
 
     python-2.6
     python-virtualenv
-    libsasl2-dev (required for stand-alone)
-    libssl-dev (required for stand-alone)
+    (the following are required for stand-alone)
+        openldap-devel
+        openssl-devel 
+    or
+        libsasl2-dev
+        libssl-dev 
+    libcurl3-dev
 
 We run the package via nginx, although there's no requirement for deployment.
     nginx
 
 some additional optional packages
     python-2.6-dev
-    python-2.6-profiler
-    redis-server  (v.2.0.4 +)
-    python-redis (or easy_install redis)
-    python-ldap
-    python-openid
-    gnuplot (for bench reports)
+    python-2.6-profiler         (required for profile testing)
+    gnuplot                     (for profile bench reports)
     python-gnuplot
+    redis-server [v.2.0.4 +]    (alt. storage)
+    python-redis                (or easy_install redis)
+    mongodb
+    pymongo     
+    python-ldap                 (if using LDAP)
     libsasl2-dev
     libldap-dev
     libssl-dev
-    nginx
-    mongodb
+    mysql-devel                 (required for some installs using LDAP)
 
 via the virtualenv easyinstall: 
     gunicorn
