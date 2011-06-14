@@ -121,21 +121,22 @@
     _storeObject(CERTS_KEY, certs);
   }
 
-  function _getIdForAudience(audience) {
-    var audiences = _getStoredObject(AUD_KEY);
-    var audRecord = audiences[audience];
-    if (typeof(audRecord) === "undefined") {
-      // no previous id provided for this audience, user must specify
-      // TODO
+  function _getCertsArray() {
+    /* returns an array containing all of the identity certificates records
+    currently in local storage */
+    var certs = _getStoredObject(CERTS_KEY);
+    var certsArray = [];
+    for (var entry in certs) {
+      if (entry.hasOwnProperty(entry)) {
+        certsArray.push(certs[entry]);
+      };
     };
+    return certsArray;
   }
 
-  function _getCertRecordForAudience(audience) {
-    /* return a valid id certificate for the id (i.e. email address) associated
-    w/ the specified audience, if possible */
-    // XXX: Error checking
-    audienceEmail = _getIdForAudience(audience);
-    return _getCertRecord(audienceEmail);
+  function _getIdForAudience(audience) {
+    var audiences = _getStoredObject(AUD_KEY);
+    return audiences[audience];
   }
 
   function _generateAssertion(audience, certRecord) {
