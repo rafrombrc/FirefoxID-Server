@@ -121,21 +121,22 @@
     _storeObject(CERTS_KEY, certs);
   }
 
-  function _getIdForAudience(audience) {
-    var audiences = _getStoredObject(AUD_KEY);
-    var audRecord = audiences[audience];
-    if (typeof(audRecord) === "undefined") {
-      // no previous id provided for this audience, user must specify
-      // TODO
+  function _getCertsArray() {
+    /* returns an array containing all of the identity certificates records
+    currently in local storage */
+    var certs = _getStoredObject(CERTS_KEY);
+    var certsArray = [];
+    for (var entry in certs) {
+      if (entry.hasOwnProperty(entry)) {
+        certsArray.push(certs[entry]);
+      };
     };
+    return certsArray;
   }
 
-  function _getCertRecordForAudience(audience) {
-    /* return a valid id certificate for the id (i.e. email address) associated
-    w/ the specified audience, if possible */
-    // XXX: Error checking
-    audienceEmail = _getIdForAudience(audience);
-    return _getCertRecord(audienceEmail);
+  function _getIdForAudience(audience) {
+    var audiences = _getStoredObject(AUD_KEY);
+    return audiences[audience];
   }
 
   function _generateAssertion(audience, certRecord) {
@@ -149,6 +150,10 @@
     var algorithm = {'alg': 'RS256'};
     var webToken = new jwt.WebToken(JSON.stringify(assertionBody), algorithm);
     return webToken.rsaKeySerialize(certRecord.rsaKey);
+  }
+
+  function _getUserIdSelection(certsArray, prevEmail) {
+    // TODO
   }
 
   clientApi = {
@@ -193,6 +198,7 @@
       // the public key in the stored key pair
       var certJwt = args.certJwt;
       var updateUrl = args.updateUrl;
+      var errorUrl = args.errorUrl;
       var webToken = jwt.WebTokenParser.parse(certJwt);
       var objectStr = jwt.base64urldecode(webToken.payloadSegment);
       var cert = JSON.parse(objectStr);
@@ -209,14 +215,23 @@
       };
       certRecord.cert = cert;
       certRecord.certUpdateUrl = updateUrl;
+      certRecord.certErrorUrl = errorUrl;
       _setCertRecord(email, certRecord);
     },
 
     getVerifiedEmail: function getVerifiedEmail(args) {
+      var certsArray = _getCertsArray();
+      if (!certsArray.length) {
+        // if we don't have any certificates then we don't have any verified
+        // emails
+        navigator.id.onVerifiedEmail(null);
+        return;
+      }
       var audience = document.location.hostname;
-      var certRecord = _getCertRecordForAudience(audience);
-      if (certRecord === null) {
-        // TODO
+      var prevEmail = _getIdForAudience(audience);
+      var certRecord = _getUserIdSelection(certsArray, prevEmail);
+      if (_certExpired(certRecord.cert)) {
+        // TODO: call updateUrl to renew cert
       };
       var assertion = _generateAssertion(audience, certRecord);
       navigator.id.onVerifiedEmail(assertion);

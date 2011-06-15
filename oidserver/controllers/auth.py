@@ -61,7 +61,9 @@ class AuthController(BaseController):
         try:
             response = {'certificate': self.gen_certificate(
                         address_info.get('email'),
-                        request.params.get('pubkey'))}
+                        request.params.get('pubkey')),
+                        'callbackUrl': self.gen_callback_url(uid,
+                                                cert_info.get('id'))}
         except OIDStorageException, ose:
             error = self.error_codes.get('INVALID')
             error.reason = str(ose)
