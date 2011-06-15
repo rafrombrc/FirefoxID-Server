@@ -57,12 +57,12 @@ urls = [
 #        ('POST', '/%s/verify_address' % VERSION,
 #                'auth', 'verify_address'),
         # (validate &) refresh a certificate that we have previously issued
-        ('POST', '/%s/refresh_certificate' % VERSION,
+        (('GET', 'POST'), '/%s/refresh_certificate' % VERSION,
                 'auth', 'refresh_certificate'),
         # You're logged in, now authorize the email address via the token
         ('GET', '/%s/validate/{validate:[\w]+}' % VERSION,
                 'auth', 'validate'),
-        ('POST', '/%s/get_certificate' % VERSION,
+        (('GET', 'POST'), '/%s/get_certificate' % VERSION,
                 'auth', 'get_certificate'),
         ('GET', '/%s/random' % VERSION,
                 'auth', 'random')
