@@ -245,8 +245,8 @@
         refreshees[certRecord.id] = {'audience': audience,
                                      'certRecord': certRecord};
 
-        function refreshTimeout(email) {
-          if (email in refreshees) {
+        function refreshTimeout() {
+          if (certRecord.id in refreshees) {
             // we've timed out :(  redirect browser window to errorUrl
             var message = {'operation': 'redirect',
                            'args': {'errorUrl': certRecord.errorUrl}
