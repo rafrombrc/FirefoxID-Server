@@ -52,6 +52,7 @@
   var VEP_KEY_PREFIX = 'moz.vep';
   var CERTS_KEY = 'certs';
   var AUD_KEY = 'audiences';
+  var refreshees = {};
 
   function _setStorage(key, value) {
     var fullKey = security.ID_KEY_PREFIX + '.' + key;
@@ -217,6 +218,14 @@
       certRecord.certUpdateUrl = updateUrl;
       certRecord.certErrorUrl = errorUrl;
       _setCertRecord(email, certRecord);
+      if (email in refreshees) {
+        // we're finishing a refresh, generate an assertion and call
+        // onVerifiedEmail
+        var assertion = _generateAssertion(refreshees[email].audience,
+                                           refreshees[email].certRecord);
+        navigator.id.onVerifiedEmail(assertion);
+        delete refreshees[email];
+      };
     },
 
     getVerifiedEmail: function getVerifiedEmail(event, args) {
@@ -230,11 +239,34 @@
       var audience = document.location.hostname;
       var prevEmail = _getIdForAudience(audience);
       var certRecord = _getUserIdSelection(certsArray, prevEmail);
+
+      function requestCertRefresh() {
+        var timeout = 30,000;  // thunder suggested 30s, too high?
+        refreshees[certRecord.id] = {'audience': audience,
+                                     'certRecord': certRecord};
+
+        function refreshTimeout(email) {
+          if (email in refreshees) {
+            // we've timed out :(  redirect browser window to errorUrl
+            var message = {'operation': 'redirect',
+                           'args': {'errorUrl': certRecord.errorUrl}
+                          };
+            delete refreshees[certRecord.id];
+            send(event.source, message, origin(event));
+          };
+        }
+
+        setTimeout(refreshTimeout, timeout);
+      }
+
       if (_certExpired(certRecord.cert)) {
-        // TODO: call updateUrl to renew cert
+        // request certificate refresh
+        requestCertRefresh(certRecord);
+      } else {
+        // cert is good, generate the assertion and send it to the RP
+        var assertion = _generateAssertion(audience, certRecord);
+        navigator.id.onVerifiedEmail(assertion);
       };
-      var assertion = _generateAssertion(audience, certRecord);
-      navigator.id.onVerifiedEmail(assertion);
     }
   };
 
