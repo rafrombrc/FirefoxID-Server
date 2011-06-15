@@ -256,6 +256,8 @@
           };
         }
 
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", certRecord.refreshUrl, true);
         setTimeout(refreshTimeout, timeout);
       }
 
