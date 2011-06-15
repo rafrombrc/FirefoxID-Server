@@ -157,7 +157,7 @@
   }
 
   clientApi = {
-    registerVerifiedEmail: function registerVerifiedEmail(args) {
+    registerVerifiedEmail: function registerVerifiedEmail(event, args) {
       var email = args.email;
       if (!email) {
         throw('Invalid arguments for registerVerifiedEmail call');
@@ -190,7 +190,7 @@
       return {'email': email, 'publicKey': keyPair.pub};
     },
 
-    registerVerifiedEmailCertificate: function registerCert(args) {
+    registerVerifiedEmailCertificate: function registerCert(event, args) {
       // expects identity certificate JWT (Javascript Web Token).  parses the
       // JWT, fetches the cert record for the id cert's email address, and
       // stores the cert in the cert record.  throws an error if no cert record
@@ -219,7 +219,7 @@
       _setCertRecord(email, certRecord);
     },
 
-    getVerifiedEmail: function getVerifiedEmail(args) {
+    getVerifiedEmail: function getVerifiedEmail(event, args) {
       var certsArray = _getCertsArray();
       if (!certsArray.length) {
         // if we don't have any certificates then we don't have any verified
@@ -259,7 +259,7 @@
     if (!clientApi[message.operation]) {
       throw('Undefined VEP Client API call: ' + message.operation);
     };
-    var result = clientApi[message.operation](message.args);
+    var result = clientApi[message.operation](event, message.args);
     // construct the return message
     return {'success': true,
             'operation': message.operation,
