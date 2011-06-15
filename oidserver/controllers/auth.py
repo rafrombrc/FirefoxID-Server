@@ -73,7 +73,8 @@ class AuthController(BaseController):
                                response = response)
         return Response(str(body), content_type = content_type)
 
-    # called during connection. invokes naviator.id.registerVerfiedEmail(email)
+    # called during connection. invokes
+    # navigator.id.registerVerifiedEmail(email)
     def registered_emails(self, request, **kw):
         response = None
         error = None
