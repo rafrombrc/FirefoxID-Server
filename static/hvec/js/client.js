@@ -154,7 +154,12 @@
   }
 
   function _getUserIdSelection(certsArray, prevEmail) {
-    // TODO
+    if (certsArray.length === 1 && prevEmail === certsArray[0].id) {
+      // if there's only 1 email and it's been used for this audience
+      // in the past we automatically approve it
+      return certsArray[0];
+    };
+    // TODO: user email selection UI
   }
 
   clientApi = {
