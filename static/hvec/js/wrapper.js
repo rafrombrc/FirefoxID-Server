@@ -75,7 +75,7 @@
   var identityOrigin   = "https://localhost";   //CHANGE HOST
   var iframe           = document.createElement("iframe");
   iframe.style.display = "none";
-  iframe.src           = identityOrigin + "/s/vep_client_iframe.html";
+  iframe.src           = identityOrigin + "/hvec/vec_iframe.html";
 
   /*
    * Mini postMessage communication framework. Each mailbox represents a

@@ -52,6 +52,7 @@
   var VEP_KEY_PREFIX = 'moz.vep';
   var CERTS_KEY = 'certs';
   var AUD_KEY = 'audiences';
+  var refreshees = {};
 
   function _setStorage(key, value) {
     var fullKey = security.ID_KEY_PREFIX + '.' + key;
@@ -157,7 +158,7 @@
   }
 
   clientApi = {
-    registerVerifiedEmail: function registerVerifiedEmail(args) {
+    registerVerifiedEmail: function registerVerifiedEmail(event, args) {
       var email = args.email;
       if (!email) {
         throw('Invalid arguments for registerVerifiedEmail call');
@@ -190,7 +191,7 @@
       return {'email': email, 'publicKey': keyPair.pub};
     },
 
-    registerVerifiedEmailCertificate: function registerCert(args) {
+    registerVerifiedEmailCertificate: function registerCert(event, args) {
       // expects identity certificate JWT (Javascript Web Token).  parses the
       // JWT, fetches the cert record for the id cert's email address, and
       // stores the cert in the cert record.  throws an error if no cert record
@@ -217,9 +218,17 @@
       certRecord.certUpdateUrl = updateUrl;
       certRecord.certErrorUrl = errorUrl;
       _setCertRecord(email, certRecord);
+      if (email in refreshees) {
+        // we're finishing a refresh, generate an assertion and call
+        // onVerifiedEmail
+        var assertion = _generateAssertion(refreshees[email].audience,
+                                           refreshees[email].certRecord);
+        navigator.id.onVerifiedEmail(assertion);
+        delete refreshees[email];
+      };
     },
 
-    getVerifiedEmail: function getVerifiedEmail(args) {
+    getVerifiedEmail: function getVerifiedEmail(event, args) {
       var certsArray = _getCertsArray();
       if (!certsArray.length) {
         // if we don't have any certificates then we don't have any verified
@@ -230,11 +239,36 @@
       var audience = document.location.hostname;
       var prevEmail = _getIdForAudience(audience);
       var certRecord = _getUserIdSelection(certsArray, prevEmail);
+
+      function requestCertRefresh() {
+        var timeout = 30,000;  // thunder suggested 30s, too high?
+        refreshees[certRecord.id] = {'audience': audience,
+                                     'certRecord': certRecord};
+
+        function refreshTimeout() {
+          if (certRecord.id in refreshees) {
+            // we've timed out :(  redirect browser window to errorUrl
+            var message = {'operation': 'redirect',
+                           'args': {'errorUrl': certRecord.errorUrl}
+                          };
+            delete refreshees[certRecord.id];
+            send(event.source, message, origin(event));
+          };
+        }
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", certRecord.refreshUrl, true);
+        setTimeout(refreshTimeout, timeout);
+      }
+
       if (_certExpired(certRecord.cert)) {
-        // TODO: call updateUrl to renew cert
+        // request certificate refresh
+        requestCertRefresh(certRecord);
+      } else {
+        // cert is good, generate the assertion and send it to the RP
+        var assertion = _generateAssertion(audience, certRecord);
+        navigator.id.onVerifiedEmail(assertion);
       };
-      var assertion = _generateAssertion(audience, certRecord);
-      navigator.id.onVerifiedEmail(assertion);
     }
   };
 
@@ -259,7 +293,7 @@
     if (!clientApi[message.operation]) {
       throw('Undefined VEP Client API call: ' + message.operation);
     };
-    var result = clientApi[message.operation](message.args);
+    var result = clientApi[message.operation](event, message.args);
     // construct the return message
     return {'success': true,
             'operation': message.operation,

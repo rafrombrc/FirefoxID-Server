@@ -52,8 +52,10 @@ class AuthController(BaseController):
         try:
             cert_info = jws.parse(request.params.get('certificate', None))
             if cert_info is None:
+                logger.error('Certificat information missing from request')
                 raise HTTPBadRequest()
-        except JWSException:
+        except JWSException, ex:
+            logger.error('Could not parse JWS object: %s ' % str(ex))
             raise HTTPBadRequest()
         (state, address_info) = self.check_cert(uid, cert_info)
         if not state:
@@ -392,6 +394,7 @@ class AuthController(BaseController):
                                       request.params.get('validate',
                                                          None))
         if token is None:
+            logger.error('No validation token discovered in request')
             raise HTTPBadRequest()
         uid = self.get_uid(request, strict = False)
         if not uid:
@@ -400,9 +403,13 @@ class AuthController(BaseController):
         body = ""
         try:
             email = self.app.storage.check_validation(uid, token)
-        except OIDStorageException:
+        except OIDStorageException, ex:
+            logger.error('Could not check token for user %s, %s' %
+                         (uid, str(ex)))
             raise HTTPBadRequest()
         if not email:
+            logger.error('No email associated with uid:%s and token:% ' %
+                         (uid, token))
             raise HTTPBadRequest()
         template = get_template('validation_confirm')
         user = self.app.storage.get_user_info(uid)
