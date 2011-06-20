@@ -153,13 +153,23 @@
     return webToken.rsaKeySerialize(certRecord.rsaKey);
   }
 
-  function _getUserIdSelection(certsArray, prevEmail) {
-    if (certsArray.length === 1 && prevEmail === certsArray[0].id) {
-      // if there's only 1 email and it's been used for this audience
-      // in the past we automatically approve it
-      return certsArray[0];
+  function _getUserIdSelection(event, certsArray, prevEmail) {
+    if (typeof(prevEmail) !== 'undefined') {
+      for (i = 0; i < certsArray.length; i++) {
+        if (certsArray[i].cert.id === prevEmail) {
+          // we've used this email for this RP before, automatically select it
+          return certsArray[i];
+        };
+      };
     };
     // TODO: user email selection UI
+    var message = {'operation': 'popup',
+                   'args': {'certsArray': certsArray}
+                  };
+    function callback(event, args) {
+      // TODO
+    }
+    sendExpectingReply(event.source, message, origin(event), callback);
   }
 
   clientApi = {
