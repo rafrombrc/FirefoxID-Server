@@ -173,8 +173,7 @@
   }
 
   clientApi = {
-    registerVerifiedEmail: function registerVerifiedEmail(event, args) {
-      var email = args.email;
+    registerVerifiedEmail: function registerVerifiedEmail(trans, email) {
       if (!email) {
         throw('Invalid arguments for registerVerifiedEmail call');
       };
@@ -206,15 +205,13 @@
       return {'email': email, 'publicKey': keyPair.pub};
     },
 
-    registerVerifiedEmailCertificate: function registerCert(event, args) {
+    registerVerifiedEmailCertificate: function registerCert(trans, certJwt, updateUrl,
+                                                            errorUrl) {
       // expects identity certificate JWT (Javascript Web Token).  parses the
       // JWT, fetches the cert record for the id cert's email address, and
       // stores the cert in the cert record.  throws an error if no cert record
       // exists for the address, or if the public key in the cert doesn't match
       // the public key in the stored key pair
-      var certJwt = args.certJwt;
-      var updateUrl = args.updateUrl;
-      var errorUrl = args.errorUrl;
       var webToken = jwt.WebTokenParser.parse(certJwt);
       var objectStr = jwt.base64urldecode(webToken.payloadSegment);
       var cert = JSON.parse(objectStr);
@@ -243,7 +240,7 @@
       };
     },
 
-    getVerifiedEmail: function getVerifiedEmail(event, args) {
+    getVerifiedEmail: function getVerifiedEmail(trans) {
       var certsArray = _getCertsArray();
       if (!certsArray.length) {
         // if we don't have any certificates then we don't have any verified
@@ -253,7 +250,7 @@
       }
       var audience = document.location.hostname;
       var prevEmail = _getIdForAudience(audience);
-      var certRecord = _getUserIdSelection(certsArray, prevEmail);
+      var certRecord = _getUserIdSelection(event, certsArray, prevEmail);
 
       function requestCertRefresh() {
         var timeout = 30,000;  // thunder suggested 30s, too high?
@@ -287,68 +284,10 @@
     }
   };
 
-  /* postMessage handling and reponding */
-
-  function log(m) {
-    if (console.log)
-      console.log("VEPClient: " + m);
-  }
-
-  function send(dest, message, origin) {
-    if (!origin)
-      throw "Refusing to send to open origin.";
-    log("Sending message to origin " + JSON.stringify(origin));
-    dest.postMessage(JSON.stringify(message), origin);
-  }
-
-  function receive(event, message) {
-    if (!message.operation || !message.args) {
-      throw('Malformed VEP Client postMessage request');
-    };
-    if (!clientApi[message.operation]) {
-      throw('Undefined VEP Client API call: ' + message.operation);
-    };
-    var result = clientApi[message.operation](event, message.args);
-    // construct the return message
-    return {'success': true,
-            'operation': message.operation,
-            'result': result};
-  }
-
-  function handlePostMessage(event) {
-    // First do some sanity checking.
-    if (!origin(event)) {
-      log("Rejecting message with null origin.");
-      return;
-    };
-    var message;
-    try {
-      message = JSON.parse(event.data);
-    } catch (ex) {
-      // Drop it on the floor.
-      log("Malformed JSON message: ignoring.");
-      return;
-    };
-
-    // Hooray! Valid origin and JSON body.  Try to delegate.
-    var postResponse;
-    var error = false;
-    try {
-      postResponse = receive(event, message);
-    } catch (ex) {
-      // Error was raised, notify postMessage caller
-      error = true;
-      postResponse = {'success': false,
-                      'operation': message.operation,
-                      'error': ex};
-      send(event.source, postResponse, origin(event));
-    };
-    if (!error && message.mailbox) {
-      // if the message has a mailbox attribute then the sender is expecting a
-      // response; send the result as a postMessage back to the original window
-      postResponse.mailbox = message.mailbox;
-      send(event.source, postResponse, origin(event));
-    };
-  }
+  var vepChan = Channel.build(window.parent, '*', 'vepScope');
+  vepChan.bind('registerVerifiedEmail', clientApi.registerVerifiedEmail);
+  vepChan.bind('registerVerifiedEmailCertificate',
+               clientApi.registerVerifiedEmailCertificate);
+  vepChan.bind('getVerifiedEmail', clientApi.getVerifiedEmail);
 
 })();

@@ -77,32 +77,6 @@
   iframe.style.display = "none";
   iframe.src           = identityOrigin + "/hvec/vec_iframe.html";
 
-  /*
-   * Mini postMessage communication framework. Each mailbox represents a
-   * callback; when a postMessage containing a `mailbox` value is received that
-   * value is used to fetch and invoke the appropriate callback.
-   *
-   * A utility function, sendExpectingReply, lodges the provided callback in a
-   * (new, if necessary) mailbox and sends the message on.  Note that the other
-   * side must pass this same mailbox value back to this window to complete the
-   * cycle.
-   */
-  var mailboxes = {};
-
-  var newMailbox = function() {
-    var i = 0;
-    return function newMailbox() {
-      return 'm' + i++;
-    };
-  }();
-
-  function mailbox(message) {
-    if (!message.mailbox) {
-      return null;
-    };
-    return mailboxes[message.mailbox];
-  }
-
   var popup;
   var popupRequestMessage;
 
@@ -132,45 +106,9 @@
     }
   };
 
-  function handlePostMessage(event) {
-    log("Origin: " + event.origin + "\n");
-    log("Wrapper received: " + event.data + "\n");
-
-    if (event.origin != identityOrigin) {
-      log("Rejecting message with origin " + event.origin);
-      return;
-    };
-    var message = JSON.parse(event.data);
-    if (!message.operation) {
-      throw('Malformed VEP Client wrapper postMessage request');
-    };
-    var args;
-    var handler = mailbox(message);
-    if (handler) {
-      args = message.result;
-    } else {
-      handler = postHandlers[message.operation];
-      args = message.args;
-    };
-    if (!handler) {
-      throw('Unrecognized VEP Client wrapper operation: ' + message.operation);
-    };
-    handler(args);
-  }
-
-  // We only ever send messages to the identity service, so we use it
-  // as the origin here.
-  function send(message) {
-    iframe.contentWindow.postMessage(JSON.stringify(message), identityOrigin);
-  }
-
-  function sendExpectingReply(message, callback) {
-    if (!message.mailbox) {
-      message.mailbox = newMailbox();
-    };
-    mailboxes[message.mailbox] = callback;
-    send(message);
-  }
+  var vepChan = Channel.build(iframe.contentWindow, identityOrigin, 'vepScope');
+  vepChan.bind('popup', postHandlers.popup);
+  vepChan.bind('closePopup', postHandlers.popup);
 
   log("Swizzling navigator.id.");
   navigator.id = {
@@ -178,25 +116,21 @@
     unhook: null,        // This gets built later, once we know what to unhook!
 
     registerVerifiedEmail: function registerVerifiedEmail(email, callback) {
-      var message = {'operation': 'registerVerifiedEmail',
-                     'args': {'email': email}};
       function finishRegisterVerifiedEmail(result) {
         callback(result.publicKey);
       }
-      sendExpectingReply(message, finishRegisterVerifiedEmail);
+      vepChan.call({'method': 'registerVerifiedEmail',
+                    'params': email,
+                    'success': finishRegisterVerifiedEmail});
     },
 
-    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl) {
-      var message = {'operation': 'registerVerifiedEmailCertificate',
-                     'args': {'certJwt': certJwt,
-                              'updateUrl': updateUrl}};
-      send(message);
+    registerVerifiedEmailCertificate: function registerCert(certJwt, updateUrl, errorUrl) {
+      vepChan.notify({'method': 'registerVerifiedEmailCertificate',
+                      'params': [certJwt, updateUrl, errorUrl]});
     },
 
     getVerifiedEmail: function getVerifiedEmail() {
-      var message = {'operation': 'getVerifiedEmail',
-                     'args': {}};
-      send(message);
+      vepChan.notify({'method': 'getVerifiedEmail'});
     },
 
     unhook: function unhook() {
@@ -213,6 +147,5 @@
   };
 
   document.body.appendChild(iframe);
-  window.addEventListener("message", handlePostMessage, true);  // For replies.
 
 })();
