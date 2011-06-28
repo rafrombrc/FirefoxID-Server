@@ -99,15 +99,16 @@ class MemoryStorage(OIDStorage, OIDStorageBase):
             return user.get('emails').get(email, {}).get('conf_code', None)
         return None
 
-    def remove_unvalidated(self, uid, email):
+    def remove_email(self, uid, email, state = 'pending'):
         user = self._user_db[uid]
         if email in user['emails']:
-            if user['emails'][email].get('state', None) == 'pending':
+            if user['emails'][email].get('state', None) == state:
                 rtoken = user['emails'][email]['conf_code']
                 try:
                     del user['emails'][email]
                     self._user_db[uid] = user
-                    del self._validate_db[rtoken]
+                    if rtoken in self._validate_db:
+                        del self._validate_db[rtoken]
                 except KeyError:
                     return False
         return True

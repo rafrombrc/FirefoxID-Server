@@ -57,8 +57,14 @@ urls = [
 #        ('POST', '/%s/verify_address' % VERSION,
 #                'auth', 'verify_address'),
         # (validate &) refresh a certificate that we have previously issued
-        (('GET', 'POST'), '/%s/refresh_certificate' % VERSION,
-                'auth', 'refresh_certificate'),
+#        (('GET', 'POST'), '/%s/refresh_certificate' % VERSION,
+#                'auth', 'refresh_certificate'),
+        # refresh a certificate by starting the dance over.
+        ('GET', '/%s/refresh_certificate/{email:[^\/\?\&]+}' % VERSION,
+                'auth', 'registered_emails'),
+        # Alternate: no email means everything
+        ('GET', '/%s/refresh_certificate' % VERSION,
+                'auth', 'registered_emails'),
         # You're logged in, now authorize the email address via the token
         ('GET', '/%s/validate/{validate:[\w]+}' % VERSION,
                 'auth', 'validate'),
@@ -83,12 +89,14 @@ class OIDApp(SyncServerApp):
                         # admin page entry points.
                         ('POST', '/%s/manage_info' % VERSION,
                                 'auth', 'manage_info'),
-                        ('POST', '/%s/manage_email' % VERSION,
+                        (('GET', 'POST'), '/%s/manage_email' % VERSION,
                                 'auth', 'manage_email'),
                         (('GET', 'POST'), '/%s/login' % VERSION,
                                 'auth', 'login'),
+                        ('GET', '/%s/logged_in' % VERSION,
+                                'auth', 'logged_in'),
                         # Log the user out of the system
-                        (('POST'), '/%s/logout' % VERSION,
+                        (('GET', 'POST'), '/%s/logout' % VERSION,
                                 'auth', 'logout'),
                         #(('POST'), '/%s/verify' % VERSION,
                         #        'auth', 'verify'),

@@ -93,15 +93,19 @@
                 button.addEventListener("click", postDisable, false)
                 button.disabled = false;
             }
-            if (button.className == 'unv') {
+            if (button.classList.contains("remove")) {
+                button.addEventListener("click", postEmail, false)
+                button.disabled = false;
+            }
+            if (button.classList.contains('unv')) {
                 buttons[i].addEventListener("click", postEmail, false)
             }
-            if (button.className == 'go') {
+            if (button.classList.contains('go')) {
                 button.addEventListener("click", function (b) {
                     document.location = b.currentTarget.value;
                 }, false)
             }
-            if(button.className=="rsubmit") {
+            if(button.classList.contains("rsubmit")) {
                 button.addEventListener("click", function(b){
                     document.getElementById(b.currentTarget.value).submit();
                 }, false)

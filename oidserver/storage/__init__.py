@@ -54,8 +54,8 @@ class OIDStorage(PluginRegistry):
         """ Fetch out a validation token for a specific uid/email """
 
     @abc.abstractmethod
-    def remove_unvalidated(self, uid, email):
-        """ GC unvalidated elements """
+    def remove_email(self, uid, email, state):
+        """ remove an email from a user """
 
 
 def get_storage(config, type='oidstorage'):

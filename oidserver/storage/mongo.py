@@ -135,18 +135,20 @@ class MongoStorage(OIDStorage):
             return user['emails'][email].get('conf_code', None)
         return None
 
-    def remove_unvalidated(self, uid, email):
+    def remove_email(self, uid, email, state = 'pending'):
         user = self._user_db[uid]
         if (email in user['emails'] and
-            user['emails'][email].get('state', None) == 'pending'):
+            user['emails'][email].get('state', None) == state):
                 rtoken = user['emails'][email].get('conf_code', None)
-                if rtoken:
-                    try:
-                        del user['emails'][email]
-                        self.set_user_info(uid, user)
+                try:
+                    del user['emails'][email]
+                    self.set_user_info(uid, user)
+                    if rtoken:
                         self._validate_db.remove({'_id': rtoken})
-                    except (KeyError, OperationFailure):
-                        return False
+                except (KeyError, OperationFailure):
+                    logger.warn('Could not remove email %s from user %s'
+                                % (email, uid));
+                    return False
         return True
 
     def check_validation(self, uid, token):
@@ -166,4 +168,3 @@ class MongoStorage(OIDStorage):
                          token, str(ofe))
             raise OIDStorageException("Could not validate token")
         return False
-

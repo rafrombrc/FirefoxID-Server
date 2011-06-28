@@ -2,6 +2,7 @@
 from oidserver import VERSION
 from oidserver.tests import FakeAuthTool, FakeRequest
 from oidserver.wsgiapp import make_app
+from urllib import quote
 from webtest import TestApp
 
 import cjson
@@ -109,7 +110,7 @@ class TestApi(unittest.TestCase):
         self.setUp()
         storage = self.app.app.wrap_app.app.storage
         params = self.default_params.copy()
-        test_info = {'unv': 'supplemental@example.org', 'act': 'add'}
+        test_info = {'email': 'supplemental@example.org', 'act': 'add'}
         params.update(test_info)
         path = '/%s/manage_email' % VERSION
         response = self.app.post(path,
@@ -120,7 +121,7 @@ class TestApi(unittest.TestCase):
         user = storage.get_user_info(self.user_info.get('uid'))
         ## pull the confirmation code
         conf_code = \
-            user.get('emails').get(test_info['unv']).get('conf_code')
+            user.get('emails').get(test_info['email']).get('conf_code')
         params = self.default_params.copy()
         path = ('/%s/validate/' % VERSION) + conf_code
         response = self.app.get(path,
@@ -130,8 +131,8 @@ class TestApi(unittest.TestCase):
         self.failIf('<meta name="page" content="conf_email" />' not in
             response.body)
         user = storage.get_user_info(self.user_info.get('uid'))
-        self.failIf(test_info['unv'] not in user.get('emails'))
-        self.failIf(user['emails'][test_info['unv']].get('state') \
+        self.failIf(test_info['email'] not in user.get('emails'))
+        self.failIf(user['emails'][test_info['email']].get('state') \
                     != 'verified')
 
     def test_debug(self):
@@ -176,8 +177,7 @@ class TestApi(unittest.TestCase):
         params.update({'output': 'html'})
         path = '/%s/login' % VERSION
         self.app.post(path,
-                            params,
-                            status = 302
+                            params
                             )
 #        self.failIf(self.user_info.get('pemail') not in response.body)
 
@@ -203,27 +203,31 @@ class TestApi(unittest.TestCase):
         params = self.default_params.copy()
         params.update({'sig': signature})
 
-        self.app.post(path,
+        self.app.get(path,
                     params = params,
                     extra_environ = self.extra_environ)
+
+    def test_random(self):
+        path = "/%s/random" % VERSION
+        params = self.default_params.copy()
+        response = self.app.get(path,
+                                 params = params)
+        resp_obj = cjson.decode(response.body)
+        self.failUnless('random' in resp_obj)
+        self.failUnless(type(resp_obj['random']).__name__ == 'list' )
 
     def test_refresh_certificate(self):
         """ attempt to refresh a given certificate """
         self.setUp()
-        path = '/%s/refresh_certificate' % VERSION
-        params = self.default_params.copy()
-        params.update({
-            'certificate': self.app.app.wrap_app.app.controllers.get('auth').\
-                gen_certificate(self.good_credentials.get('email'),
-                                self.good_credentials.get('pubKey')),
-            'pubkey': self.good_credentials.get('pubKey')})
-        response = self.app.post(path,
-                                 params = params,
-                                 status = 200)
-        resp_obj = cjson.decode(response.body)
-        self.failUnless(resp_obj.get('success'))
-        self.failUnless('certificate' in resp_obj)
-        self.failUnless('callbackUrl' in resp_obj)
+        path = '/%s/refresh_certificate/%s' % (VERSION,
+                                        quote(self.user_info.get('pemail')))
+        response = self.app.get(path)
+        self.failUnless('success' in response.body)
+        self.failUnless('registerVerifiedEmails' in response.body)
+        path = '/%s/refresh_certificate' % (VERSION)
+        response = self.app.get(path)
+        self.failUnless('success' in response.body)
+        self.failUnless('registerVerifiedEmails' in response.body)
         self.purge_db()
 
     def test_registered_emails(self):

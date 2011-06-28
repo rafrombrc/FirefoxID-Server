@@ -26,14 +26,13 @@ build:
 	$(EZ) Funkload 
 	$(EZ) pylint
 	$(EZ) coverage
-	$(EZ) pymongo
-	$(EZ) rsa
 	$(EZ) Beaker
 	$(EZ) Mako
 	$(EZ) M2Crypto
 	$(EZ) python_ldap
 	$(EZ) python-cjson
 	$(EZ) gunicorn
+#	$(EZ) pymongo
 
 clean:
 	find . -name "*.pyc" -delete

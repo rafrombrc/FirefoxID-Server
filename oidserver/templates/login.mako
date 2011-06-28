@@ -42,7 +42,7 @@
     %endif
     <p>Use your Firefox ID to sign in to
     %if len (audience) == 0:
-    <div class="error">Invalid Site</div>
+    <!-- div class="error">Invalid Site</div -->
     %else:
     <b>${audience_name}</b>
     %endif

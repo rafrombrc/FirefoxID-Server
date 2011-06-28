@@ -1,20 +1,26 @@
 <%
     ## Return the list of emails as individual calls to callback
     import json
+    from oidserver import VERSION
 
     # Serialize the passed arguments into a JSON token.
     _request = pageargs.get('request', {'params': {},
                             'path': ''})
+    config = pageargs.get('config', {})
     error = pageargs.get('error', None)
     _callback = pageargs.get('callback',
-        'navigator.id.registerVerifiedEmail')
+        'navigator.id.registerVerifiedEmails')
     response = pageargs.get('response', {})
     _content = {"success": True}
+
     if error:
         _content['success'] = False
         _content['error'] = error
-
+    emails = ''
     if response:
+        if response.get('emails', None):
+            emails = json.dumps(response.get('emails'))
+            del (response['emails'])
         try:
             for key in response.keys():
                 _content[key] = pageargs['response'][key]
@@ -27,7 +33,10 @@
         path = path[path.rfind('/') + 1:]
         _content['operation'] = path
         _content['sid'] = _request.params.get('sid', '')
-        rcallback  = _request.params.get('callback', '""')
+        defaultCallback = '%s/%s/getCertificate' % (
+            config.get('oid.login_host', 'https://localhost'),
+            VERSION)
+        rcallback  = pageargs.get('callback', )
     except KeyError as e:
         _content['x'] = e
         pass
@@ -36,10 +45,8 @@
 
     common_args = json.dumps(_content)
 %>
-%if response:
-%for email in response.get('emails',[]):
-${_callback}("${email}", ${rcallback}, ${common_args})
-%endfor
+%if emails:
+${_callback}(${emails}, "${rcallback|h}", ${common_args})
 %else:
 <!-- no emails -->
 %endif
