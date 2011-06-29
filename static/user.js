@@ -1,6 +1,6 @@
 (function() {
 
-    var identityBaseURL = 'https://localhost/1/';   //CHANGE HOST
+    var identityBaseURL = '/1/';   //CHANGE HOST
 
     function log(m) {
         if (console.log) {
@@ -11,8 +11,11 @@
     function error(m,r) {
         log(m,r);
         document.getElementById('error').innerHTML = m;
-        if (r.error && r.error.reason) {
+        try {
+            if (r.error.reason) {
             document.getElementById('error').innerHTML += ' '+ r.error.reason;
+            }
+        } catch(ex) {
         }
     }
     function clearError() {

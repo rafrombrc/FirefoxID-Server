@@ -76,10 +76,11 @@
     <div class="registered">
     <h2>Registered Emails</h2>
      % for email in valid:
-    <span class="email">${email}</span>
+    <div><span class="email">${email}</span>
       % if email.lower() != primary:
     <span class="del"><button class="remove" value="act=del&type=reg&email=${email|u}">Remove</button></span>
       % endif
+     </div>
      % endfor
      % endif
     </div>
