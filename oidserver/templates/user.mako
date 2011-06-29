@@ -1,5 +1,5 @@
 <%
-
+  from datetime import date
   from oidserver.util import (text_to_html_filter, url_filter)
   from oidserver import VERSION
 
@@ -77,6 +77,7 @@
     <h2>Registered Emails</h2>
      % for email in valid:
     <div><span class="email">${email}</span>
+    <span class="date">Logged in at XXX</span>
       % if email.lower() != primary:
     <span class="del"><button class="remove" value="act=del&type=reg&email=${email|u}">Remove</button></span>
       % endif
