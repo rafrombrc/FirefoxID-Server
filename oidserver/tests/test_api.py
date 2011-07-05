@@ -1,7 +1,42 @@
 # -*- coding: utf-8 -*-
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Firefox Identity Server.
+#
+# The Initial Developer of the Original Code is JR Conlin
+# Portions created by the Initial Developer are Copyright (C) 2011
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
 from oidserver import VERSION
 from oidserver.tests import FakeAuthTool, FakeRequest
 from oidserver.wsgiapp import make_app
+from urllib import quote
 from webtest import TestApp
 
 import cjson
@@ -109,7 +144,7 @@ class TestApi(unittest.TestCase):
         self.setUp()
         storage = self.app.app.wrap_app.app.storage
         params = self.default_params.copy()
-        test_info = {'unv': 'supplemental@example.org', 'act': 'add'}
+        test_info = {'email': 'supplemental@example.org', 'act': 'add'}
         params.update(test_info)
         path = '/%s/manage_email' % VERSION
         response = self.app.post(path,
@@ -120,7 +155,7 @@ class TestApi(unittest.TestCase):
         user = storage.get_user_info(self.user_info.get('uid'))
         ## pull the confirmation code
         conf_code = \
-            user.get('emails').get(test_info['unv']).get('conf_code')
+            user.get('emails').get(test_info['email']).get('conf_code')
         params = self.default_params.copy()
         path = ('/%s/validate/' % VERSION) + conf_code
         response = self.app.get(path,
@@ -130,8 +165,8 @@ class TestApi(unittest.TestCase):
         self.failIf('<meta name="page" content="conf_email" />' not in
             response.body)
         user = storage.get_user_info(self.user_info.get('uid'))
-        self.failIf(test_info['unv'] not in user.get('emails'))
-        self.failIf(user['emails'][test_info['unv']].get('state') \
+        self.failIf(test_info['email'] not in user.get('emails'))
+        self.failIf(user['emails'][test_info['email']].get('state') \
                     != 'verified')
 
     def test_debug(self):
@@ -176,8 +211,7 @@ class TestApi(unittest.TestCase):
         params.update({'output': 'html'})
         path = '/%s/login' % VERSION
         self.app.post(path,
-                            params,
-                            status = 302
+                            params
                             )
 #        self.failIf(self.user_info.get('pemail') not in response.body)
 
@@ -203,27 +237,31 @@ class TestApi(unittest.TestCase):
         params = self.default_params.copy()
         params.update({'sig': signature})
 
-        self.app.post(path,
+        self.app.get(path,
                     params = params,
                     extra_environ = self.extra_environ)
+
+    def test_random(self):
+        path = "/%s/random" % VERSION
+        params = self.default_params.copy()
+        response = self.app.get(path,
+                                 params = params)
+        resp_obj = cjson.decode(response.body)
+        self.failUnless('random' in resp_obj)
+        self.failUnless(type(resp_obj['random']).__name__ == 'list' )
 
     def test_refresh_certificate(self):
         """ attempt to refresh a given certificate """
         self.setUp()
-        path = '/%s/refresh_certificate' % VERSION
-        params = self.default_params.copy()
-        params.update({
-            'certificate': self.app.app.wrap_app.app.controllers.get('auth').\
-                gen_certificate(self.good_credentials.get('email'),
-                                self.good_credentials.get('pubKey')),
-            'pubkey': self.good_credentials.get('pubKey')})
-        response = self.app.post(path,
-                                 params = params,
-                                 status = 200)
-        resp_obj = cjson.decode(response.body)
-        self.failUnless(resp_obj.get('success'))
-        self.failUnless('certificate' in resp_obj)
-        self.failUnless('callbackUrl' in resp_obj)
+        path = '/%s/refresh_certificate/%s' % (VERSION,
+                                        quote(self.user_info.get('pemail')))
+        response = self.app.get(path)
+        self.failUnless('success' in response.body)
+        self.failUnless('registerVerifiedEmails' in response.body)
+        path = '/%s/refresh_certificate' % (VERSION)
+        response = self.app.get(path)
+        self.failUnless('success' in response.body)
+        self.failUnless('registerVerifiedEmails' in response.body)
         self.purge_db()
 
     def test_registered_emails(self):

@@ -1,5 +1,5 @@
 <%
-
+  from datetime import date
   from oidserver.util import (text_to_html_filter, url_filter)
   from oidserver import VERSION
 
@@ -13,6 +13,7 @@
   sig = pageargs.get('sig', '')
   user_avatar = url_filter(user_info.get('data',{}).get('avatar',''))
   user_name = text_to_html_filter(user_info.get('name',''))
+  primary = user_info.get('primary','').lower()
 
   if not avatar:
    user_avatar = ''
@@ -29,13 +30,6 @@
    <link rel="openid2.local_id" href="${host}/${user}"/>
  </head>
  <body>
-<%doc>
-
-        This file will not
-        be used, ideally. It is provided for legacy OpenID2
-        reasons, as well as a placeholder for a future dashboard.
-
-</%doc>
 <header>
     <h1>Welcome to <span class="username">${user|h}</span>'s page.</h1>
 </header>
@@ -79,19 +73,24 @@
 
 %>
     % if valid:
+    <div class="registered">
     <h2>Registered Emails</h2>
-    <ul>
      % for email in valid:
-    <li>${email}</li>
+    <div><span class="email">${email}</span>
+    <span class="date">Logged in at XXX</span>
+      % if email.lower() != primary:
+    <span class="del"><button class="remove" value="act=del&type=reg&email=${email|u}">Remove</button></span>
+      % endif
+     </div>
      % endfor
      % endif
-    </ul>
+    </div>
     %else:
      <p> You must verify at least one email address before you can log into
      sites.</p>
     % endif
     <form action="${login_host}/${VERSION}/manage_email" method="POST">
-    <p><input name="unv" value="" placeholder="Additional Email"/>
+    <p><input name="email" value="" placeholder="Additional Email"/>
     <button class="submit" type="submit" name="act" value="add">Add Email</button></p>
     </form>
      %if unver:
@@ -101,10 +100,10 @@
     <tr><th>Email</th><th.button></th></tr>
       %for email in unver:
       <tr><td>${email|entity}
-      <td class="button"><button class="unv validate" value="act=add&unv=${email|u}">Resend</button></td>
+      <td class="button"><button class="unv validate" value="act=add&type=unv&email=${email|u}">Resend</button></td>
       <td class="button">
-      %if email != user_info.get('primary', None):
-      <button class="unv remove" value="act=del&unv=${email|u}">Forget</button></td>
+      %if email != primary:
+      <button class="unv remove" value="act=del&type=unv&email=${email|u}">Forget</button></td>
       %endif
       </tr>
       %endfor
@@ -136,7 +135,7 @@
 </footer>
 <script type="text/javascript" src="/s/user.js" ></script>
 % if valid:
-<script type="text/javascript" src="${login_host}/1/register"></script>
+<!-- script type="text/javascript" src="${login_host}/1/register"></script -->
 % endif
 </body>
 </html>

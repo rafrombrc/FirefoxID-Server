@@ -1,6 +1,6 @@
 (function() {
 
-    var identityBaseURL = 'https://localhost/1/';   //CHANGE HOST
+    var identityBaseURL = '/1/';   //CHANGE HOST
 
     function log(m) {
         if (console.log) {
@@ -11,8 +11,11 @@
     function error(m,r) {
         log(m,r);
         document.getElementById('error').innerHTML = m;
-        if (r.error && r.error.reason) {
+        try {
+            if (r.error.reason) {
             document.getElementById('error').innerHTML += ' '+ r.error.reason;
+            }
+        } catch(ex) {
         }
     }
     function clearError() {
@@ -93,15 +96,19 @@
                 button.addEventListener("click", postDisable, false)
                 button.disabled = false;
             }
-            if (button.className == 'unv') {
+            if (button.classList.contains("remove")) {
+                button.addEventListener("click", postEmail, false)
+                button.disabled = false;
+            }
+            if (button.classList.contains('unv')) {
                 buttons[i].addEventListener("click", postEmail, false)
             }
-            if (button.className == 'go') {
+            if (button.classList.contains('go')) {
                 button.addEventListener("click", function (b) {
                     document.location = b.currentTarget.value;
                 }, false)
             }
-            if(button.className=="rsubmit") {
+            if(button.classList.contains("rsubmit")) {
                 button.addEventListener("click", function(b){
                     document.getElementById(b.currentTarget.value).submit();
                 }, false)
