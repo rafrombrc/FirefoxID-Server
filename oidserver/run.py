@@ -12,10 +12,10 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is Sync Server
+# The Original Code Firefox Identity Server
 #
 # The Initial Developer of the Original Code is the Mozilla Foundation.
-# Portions created by the Initial Developer are Copyright (C) 2010
+# Portions created by the Initial Developer are Copyright (C) 2011
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):

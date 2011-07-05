@@ -1,3 +1,37 @@
+# ***** BEGIN LICENSE BLOCK *****
+# Version: MPL 1.1/GPL 2.0/LGPL 2.1
+#
+# The contents of this file are subject to the Mozilla Public License Version
+# 1.1 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+# http://www.mozilla.org/MPL/
+#
+# Software distributed under the License is distributed on an "AS IS" basis,
+# WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+# for the specific language governing rights and limitations under the
+# License.
+#
+# The Original Code is Firefox Identity Server.
+#
+# The Initial Developer of the Original Code is JR Conlin
+# Portions created by the Initial Developer are Copyright (C) 2011
+# the Initial Developer. All Rights Reserved.
+#
+# Contributor(s):
+#
+# Alternatively, the contents of this file may be used under the terms of
+# either the GNU General Public License Version 2 or later (the "GPL"), or
+# the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+# in which case the provisions of the GPL or the LGPL are applicable instead
+# of those above. If you wish to allow use of your version of this file only
+# under the terms of either the GPL or the LGPL, and not to allow others to
+# use your version of this file under the terms of the MPL, indicate your
+# decision by deleting the provisions above and replace them with the notice
+# and other provisions required by the GPL or the LGPL. If you do not delete
+# the provisions above, a recipient may use your version of this file under
+# the terms of any one of the MPL, the GPL or the LGPL.
+#
+# ***** END LICENSE BLOCK *****
 from oidserver import logger, VERSION
 from oidserver.controllers import BaseController
 from oidserver.jws import JWS, JWSException
@@ -86,22 +120,31 @@ class AuthController(BaseController):
             error = self.error_codes.get('LOGIN_ERROR')
         else:
             user_info = self.app.storage.get_user_info(uid)
+            candidates = []
             emails = []
-            for email in user_info.get('emails'):
+            pref_email = request.params.get('email', None)
+            if pref_email:
+                if pref_email in user_info.get('emails'):
+                    candidates.append(pref_email)
+            else:
+                candidates = user_info.get('emails')
+            for email in candidates:
                 email_record = user_info['emails'].get(email)
                 if email_record.get('state', None) == 'verified':
                     emails.append(email)
             response = {'emails': emails}
         body = template.render(request = request,
-                               config = self.app.config,
-                               error = error,
-                               callback = 'navigator.id.registerVerifiedEmail',
-                               response = response)
+                            config = self.app.config,
+                            error = error,
+                            callback = 'navigator.id.registerVerifiedEmails',
+                            response = response)
         return Response(str(body), content_type = content_type)
 
     def gen_callback_url(self, uid, email):
-        return "%s/%s" % ( self.app.config.get('oid.login_host', 'localhost'),
-                          'refresh_certificate')
+        return "%s/%s/%s" % (self.app.config.get('oid.login_host',
+                                                  'localhost'),
+                          'refresh_certificate',
+                          quote(email))
 
     def gen_certificate(self, email, ua_pub_key):
         ttl = time() + self.app.config.get('auth.cert_ttl_in_secs', 86400)
@@ -142,10 +185,12 @@ class AuthController(BaseController):
     def random(self, request, **kw):
         """ Return a random number
         """
-        rval = random.getrandbits(random.randint(1, 256))
+        rset = []
+        for i in range(16):
+            rset.append(random.getrandbits(256))
         (content_type, template) = self.get_template_from_request(request)
         body = template.render(request = request,
-                               response = {'random': rval},
+                               response = {'random': rset},
                                config = self.app.config
                                )
         return Response(str(body), content_type = content_type)
@@ -248,6 +293,8 @@ class AuthController(BaseController):
             if 'validate' in request.params:
                 return self.validate(request)
         # Attempt to get the uid.
+        if not email:
+            email = request.params.get('id', None)
         if uid is None:
             logger.debug('attempting to get uid')
             uid = self.get_uid(request, strict = False)
@@ -265,16 +312,21 @@ class AuthController(BaseController):
                 return response
         # Ok, got a UID, so let's get the user info
         user = storage.get_user_info(uid)
-        if not email:
-            email = request.params.get('id', None)
         if user is None:
             user = storage.create_user(uid, email)
-
-        if email and email not in user.get('emails', []):
-            self.send_validate_email(uid, email)
-        location = "%s/%s" % (self.app.config.get('oid.login_host',
+        if email:
+            if email not in user.get('emails', []):
+                self.send_validate_email(uid, email)
+            if (len(request.params.get('audience', ''))):
+                return self.registered_emails(request)
+            location = "%s/%s" % (self.app.config.get('oid.login_host',
                                                           'localhost'),
-             quote(email))
+                 quote(email))
+        else:
+            del (request.environ['beaker.session']['uid'])
+            location = "%s/%s/login" % (self.app.config.get('oid.login_host',
+                                                            'localhost'),
+                                        VERSION)
         logger.debug('Sending user to admin page %s' % location)
         raise HTTPFound(location = location)
 
@@ -310,10 +362,14 @@ class AuthController(BaseController):
         if not self.is_internal(request):
             raise HTTPForbidden()
         uid = self.get_uid(request, strict = False)
+        email = request.params.get('email', '')
         if not uid:
+            logger.warn("Invalid request, no uid")
             return HTTPBadRequest()
-        if 'unv' in request.params and 'act' in request.params:
-            email = request.params.get('unv')
+        if not email:
+            logger.warn("Malformed, manage request, no email")
+            return HTTPBadRequest()
+        if 'act' in request.params:
             if '@' not in email:
                 email = unquote(email)
             action = request.params.get('act').lower()
@@ -327,21 +383,40 @@ class AuthController(BaseController):
                     return Response(str(body),
                                     content_type = content_type)
             elif action == 'del':
-                if not self.app.storage.remove_unvalidated(uid, email):
+                type = request.params.get('type', None)
+                error = False
+                if not type:
+                    logger.warn("Malformed, missing type")
+                    return HTTPBadRequest()
+                if type.lower() == 'unv':
+                    if not self.app.storage.remove_email(uid,
+                                                         email = email,
+                                                         state = 'pending'):
+                        error = True
+                elif type.lower() == 'reg':
+                    #For now, don't allow users to remove their verified
+                    # primary email
+                    if email.lower() == user.get('primary', '').lower():
+                        return HTTPBadRequest()
+                    if not self.app.storage.remove_email(uid,
+                                                         email = email,
+                                                         state = 'verified'):
+                        error = True
+                if error:
                     body = template.render(request = request,
-                                    config = self.app.config,
-                                    email = email,
-                                    user = user,
-                                    error = self.error_codes('INVALID'))
+                                        config = self.app.config,
+                                        email = email,
+                                        user = user,
+                                        error = self.error_codes('INVALID'))
                 else:
                     body = template.render(request = request,
-                                    config = self.app.config,
-                                    user = user,
-                                    email = email)
+                                        config = self.app.config,
+                                        user = user,
+                                        email = email)
                 return Response(str(body), content_type = content_type)
             return HTTPBadRequest()
         user_info = self.app.storage.get_user_info(uid)
-        raise HTTPFound(location = "https:/%s/%s" %
+        raise HTTPFound(location = "%s/%s" %
                 (self.app.config.get('oid.login_host', 'https://localhost'),
                          quote(user_info.get('pemail'))))
 
