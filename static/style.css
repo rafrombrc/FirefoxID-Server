@@ -16,9 +16,12 @@ main{position:relative;display:block;padding:9EM 0;}
 .message {text-align:left;}
 .message .email {font-weight:bold;}
 .registered {text-align:left;}
-.registered div {line-height: 2EM;}
+.registered div {min-height:4EM;}
 .registered div:nth-child(odd) {background:#F8F8F8;}
-.registered .del {float:right;}
+.registered .email {padding:8px;font-weight:bold;}
+.registered .meta {float:right;}
+.registered .meta .del {display:block;}
+.registered .meta .date {font:6pt arial; }
 button,.fakebutton {background-image:-moz-linear-gradient(center bottom,#E9E9E9,#FbFbFb);width:100px;padding:2px;margin:2px;display:inline-block;border-radius:5px;border:1px solid #888;}
 button.submit,button.rsubmit {background-image:-moz-linear-gradient(center bottom,#007dd6,#0093fa);color:#FFF;border:0;font-weight:bold;}
 button.go_back {position:relative;left:-120px;}

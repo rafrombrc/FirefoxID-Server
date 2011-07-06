@@ -82,7 +82,6 @@ class OIDApp(SyncServerApp):
     """FirefoxID application"""
 
     def __init__(self, urls, controllers, config, auth_class):
-#        import pdb; pdb.set_trace();
         if config.get('oid.admin_page', False):
                 #Add the admin page functions.
                 admin_urls = [

@@ -150,10 +150,11 @@ class AuthController(BaseController):
     def gen_certificate(self, email, ua_pub_key):
         ttl = time() + self.app.config.get('auth.cert_ttl_in_secs', 86400)
         certificate_info = {
-            'id': email,
-            'valid-until': ttl,
-            'issuer': self.app.config.get('auth.issuer', 'UNDEFINED'),
-            'publicKey': ua_pub_key
+            'exp': ttl,
+            'iss': self.app.config.get('auth.issuer', 'UNDEFINED'),
+            'moz-vep-id': email,
+            'moz-vep-purpose': self.app.config.get('auth.purpose', ''),
+            'moz-vep-publicKey': ua_pub_key
         }
         jws = JWS(config = self.app.config)
         return jws.sign(certificate_info)

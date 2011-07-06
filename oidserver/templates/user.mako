@@ -69,18 +69,20 @@
       if email.get('state', None) == 'pending':
        unver.append(addr)
       if email.get('state', None) == 'verified':
-       valid.append(addr)
+       valid.append((addr, email.get('created',0)))
 
 %>
     % if valid:
     <div class="registered">
     <h2>Registered Emails</h2>
      % for email in valid:
-    <div><span class="email">${email}</span>
-    <span class="date">Logged in at XXX</span>
-      % if email.lower() != primary:
-    <span class="del"><button class="remove" value="act=del&type=reg&email=${email|u}">Remove</button></span>
+    <div><span class="email">${email[0]}</span>
+    <div class="meta">
+      % if email[0].lower() != primary:
+    <span class="del"><button class="remove" value="act=del&type=reg&email=${email[0]|u}">Forget</button></span>
       % endif
+    <span class="date">Logged in at ${date.fromtimestamp(email[1]).strftime('%H:%M:%S %B %d, %Y')}</span>
+     </div>
      </div>
      % endfor
      % endif
