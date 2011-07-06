@@ -66,7 +66,6 @@ class UserController(BaseController):
         # Use the older style of discovery (with link refs)
         template = get_template('user')
         ct = 'text/html'
-        import pdb; pdb.set_trace();
         res = template.render(**params)
         response = Response(str(res), content_type=ct)
         if not user_info:
