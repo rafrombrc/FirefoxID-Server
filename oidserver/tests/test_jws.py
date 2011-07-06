@@ -33,7 +33,7 @@
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
 # ***** END LICENSE BLOCK *****
-from oidserver.tests import FakeAuthTool 
+from oidserver.tests import FakeAuthTool
 from oidserver.jws import (JWS)
 from oidserver.wsgiapp import make_app
 from webtest import TestApp
