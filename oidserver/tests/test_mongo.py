@@ -69,8 +69,9 @@ if MONGO:
 
         def setUp(self):
             config = {
-                    'auth.backend': 'dummy',
-                    'oidstorage.backend': 'mongo',
+                    'auth.backend': 'services.auth.dummy.DummyAuth',
+                    'oidstorage.backend':
+                        'oidserver.storage.mongo.MongoStorage',
                     #oid.host': 'http://localhost',
                     'oidstorage.host': 'web4.dev.svc.mtv1.mozilla.com',
                     'oidstorage.port': 27017}

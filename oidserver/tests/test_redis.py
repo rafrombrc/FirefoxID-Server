@@ -40,7 +40,7 @@ from oidserver.tests import test_config
 
 REDIS = False
 try:
-    if test_config.get('oidstorage.backend','memory') == 'redis':
+    if 'redis' in test_config.get('oidstorage.backend','memory'):
         REDIS = True
 except ImportError:
     pass
@@ -68,8 +68,9 @@ if REDIS:
 
         def setUp(self):
             config = {
-                    'auth.backend': 'dummy',
-                    'oidstorage.backend': 'redis',
+                    'auth.backend': 'services.auth.dummy.DummyAuth',
+                    'oidstorage.backend':
+                        'oidserver.storage._redis.RedisStorage',
                     #oid.host': 'http://localhost',
                     'oidstorage.host': 'id1.dev.mtv1.svc.mozilla.com',
                     'oidstorage.port': 6379}

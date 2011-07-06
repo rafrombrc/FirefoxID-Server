@@ -86,7 +86,7 @@ class TestApi(unittest.TestCase):
     def setUp(self, **kw):
         # use a default 'dummy' config file.
         config = {
-            'oidstorage.backend': 'memory',
+            'oidstorage.backend': 'oidserver.storage.memory.MemoryStorage',
             'oid.host': 'http://localhost:80',
             'auth.backend': '%s.%s' % (FakeAuthTool.__module__,
                                       FakeAuthTool.__name__),
