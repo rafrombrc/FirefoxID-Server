@@ -111,4 +111,4 @@ def get_storage(config, type='oidstorage'):
                     ex)
         pass
 
-    return OIDStorage.get_from_config(config)
+    return OIDStorage.get_from_config(config, 'oidstorage')
